@@ -1,0 +1,6 @@
+STU101|Rahul Sharma|Computer Science|5|9876500001|12/B Baker Street|BUS01|Sector 14|1|rahul@college.edu
+STU102|Priya Patel|Electronics|3|9876500002|45 Lake View Residency|BUS01|Metro Gate 3|2|priya@college.edu
+STU103|Amit Verma|Mechanical|7|9876500003|88 Model Town|BUS02|Green Park|1|amit@college.edu
+STU104|Sneha Gupta|Information Tech|4|9876500004|202 Sunrise Apartments|BUS02|Ring Road|2|sneha@college.edu
+STU105|Rohan Mehra|Civil|6|9876500005|14 Palm Avenue|BUS03|Civil Lines|1|rohan@college.edu
+STU106|Ananya Roy|Management|2|9876500006|73 Royal Gardens|None|None|0|ananya@college.edu

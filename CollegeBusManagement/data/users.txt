@@ -1,0 +1,6 @@
+admin|admin123|Admin||Administrator
+student1|pass123|Student|STU101|Rahul Sharma
+student2|pass123|Student|STU102|Priya Patel
+student3|pass123|Student|STU103|Amit Verma
+driver1|pass123|Driver|DRV01|Rajesh Kumar
+driver2|pass123|Driver|DRV02|Vikram Singh

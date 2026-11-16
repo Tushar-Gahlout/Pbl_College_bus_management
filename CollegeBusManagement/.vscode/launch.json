@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run College Bus Management",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/CollegeBusManagement",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "preLaunchTask": "Build College Bus Management"
+        }
+    ]
+}

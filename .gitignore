@@ -1,0 +1,46 @@
+# Build directories and generated artifacts
+build/
+*/build/
+bin/
+*/bin/
+
+# CMake build outputs
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+*.autogen/
+*_autogen/
+
+# Qt generated files
+.qt/
+*/.qt/
+*.moc
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# Compiled Object files, libraries, executables
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+CollegeBusManagement/build/CollegeBusManagement
+
+# Temporary and swap files
+*.tmp
+*~
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# VS Code local state (keep configurations, ignore workspace storage)
+.vscode/.browse.c_cpp.db*

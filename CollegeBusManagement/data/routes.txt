@@ -1,0 +1,4 @@
+R01|North City Express|City Centre|College Campus|City Centre;Metro Gate 3;Sector 14;Tech Hub;College|07:30 AM|05:00 PM|BUS01
+R02|South Suburban Line|South Extension|College Campus|South Extension;Green Park;Ring Road;University Junction;College|07:15 AM|05:15 PM|BUS02
+R03|East River Route|East Crossing|College Campus|East Crossing;Civil Lines;River Bridge;College|07:45 AM|04:45 PM|BUS03
+R04|West Highway Corridor|West Terminal|College Campus|West Terminal;Highway Flyover;Industrial Area;College|07:20 AM|05:10 PM|None

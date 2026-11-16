@@ -1,0 +1,6 @@
+ATT001|2026-11-14|BUS01|STU101|Rahul Sharma|Present|Boarded at Sector 14
+ATT002|2026-11-14|BUS01|STU102|Priya Patel|Present|Boarded at Metro Gate 3
+ATT003|2026-11-15|BUS01|STU101|Rahul Sharma|Present|Boarded on time
+ATT004|2026-11-15|BUS01|STU102|Priya Patel|Absent|Notified in advance
+ATT005|2026-11-15|BUS02|STU103|Amit Verma|Present|Boarded at Green Park
+ATT006|2026-11-15|BUS02|STU104|Sneha Gupta|Present|Boarded at Ring Road

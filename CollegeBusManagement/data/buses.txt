@@ -1,0 +1,4 @@
+BUS01|DL-01-AB-1001|40|2|Rajesh Kumar|R01|Active|Full Day|Metro Gate 3
+BUS02|DL-01-CD-2002|35|2|Vikram Singh|R02|Active|Half Day (Morning)|Ring Road
+BUS03|DL-01-EF-3003|45|1|None|R03|Active|Full Day|East Crossing
+BUS04|DL-01-GH-4004|30|0|None|None|Maintenance|Half Day (Evening)|College Workshop
