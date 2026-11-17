@@ -2,3 +2,5 @@ MNT001|BUS01|Oil Change & Filter|4500.00|2026-10-15|Authorized Service Center|Ro
 MNT002|BUS02|Brake Pad Replacement|8200.00|2026-10-20|City Auto Garage|Replaced front and rear brake pads
 MNT003|BUS04|Engine Diagnostics & Repair|18500.00|2026-11-05|College Central Workshop|Major transmission and engine checkup, under repair
 MNT004|BUS03|Tire Alignment & Balancing|3200.00|2026-11-10|Express Radial Tyre Center|Front wheel balance and rotation
+MNT005|BUS05|AC Compressor Overhaul|11500.00|2026-11-08|CoolAir Systems Workshop|Serviced cabin dual-zone air conditioning
+MNT006|BUS06|Battery & Alternator Check|4200.00|2026-11-12|National Exide Battery Care|Replaced auxiliary starting battery

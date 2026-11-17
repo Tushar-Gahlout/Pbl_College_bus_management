@@ -5,8 +5,137 @@
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <sstream>
 
 namespace fs = std::filesystem;
+
+// ============================================================================
+// Internal Helpers for Clean, Deduplicated File Handling
+// ============================================================================
+namespace {
+
+template <typename T>
+std::vector<T> loadRecordsFromFile(const std::string& path) {
+    std::vector<T> list;
+    std::ifstream in(path);
+    if (!in.is_open()) return list;
+
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty()) {
+            T item = T::deserialize(line);
+            list.push_back(item);
+        }
+    }
+    return list;
+}
+
+template <typename T, typename Predicate>
+T findRecordInFile(const std::string& path, Predicate predicate) {
+    std::ifstream in(path);
+    if (!in.is_open()) return T();
+
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty()) {
+            T item = T::deserialize(line);
+            if (predicate(item)) return item;
+        }
+    }
+    return T();
+}
+
+template <typename T, typename Matcher>
+bool updateRecordInFile(const std::string& origPath, const std::string& tempPath,
+                        const T& updatedItem, Matcher matches,
+                        const std::string& notFoundId, const std::string& entityName,
+                        const std::function<bool(const std::string&, const std::string&)>& replaceFunc) {
+    std::ifstream in(origPath);
+    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
+
+    if (!in.is_open() || !out.is_open()) {
+        throw FileIOException(origPath, "update");
+    }
+
+    bool found = false;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty()) continue;
+        T item = T::deserialize(line);
+        if (matches(item)) {
+            out << updatedItem.serialize() << "\n";
+            found = true;
+        } else {
+            out << line << "\n";
+        }
+    }
+    in.close();
+    out.close();
+
+    if (!found) {
+        fs::remove(tempPath);
+        throw NotFoundException(notFoundId, entityName);
+    }
+
+    return replaceFunc(origPath, tempPath);
+}
+
+template <typename T, typename Matcher>
+bool deleteRecordFromFile(const std::string& origPath, const std::string& tempPath,
+                          Matcher matches,
+                          const std::string& notFoundId, const std::string& entityName,
+                          const std::function<bool(const std::string&, const std::string&)>& replaceFunc) {
+    std::ifstream in(origPath);
+    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
+
+    if (!in.is_open() || !out.is_open()) {
+        throw FileIOException(origPath, "delete");
+    }
+
+    bool found = false;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty()) continue;
+        T item = T::deserialize(line);
+        if (matches(item)) {
+            found = true; // skip writing to delete
+        } else {
+            out << line << "\n";
+        }
+    }
+    in.close();
+    out.close();
+
+    if (!found) {
+        fs::remove(tempPath);
+        throw NotFoundException(notFoundId, entityName);
+    }
+
+    return replaceFunc(origPath, tempPath);
+}
+
+bool containsIgnoreCase(const std::string& haystack, const std::string& needleLower) {
+    if (needleLower.empty()) return true;
+    auto it = std::search(
+        haystack.begin(), haystack.end(),
+        needleLower.begin(), needleLower.end(),
+        [](char h, char n) {
+            return std::tolower(static_cast<unsigned char>(h)) == static_cast<unsigned char>(n);
+        }
+    );
+    return it != haystack.end();
+}
+
+void writeSeedIfMissing(const std::string& filePath, const std::string& seedContent) {
+    if (!fs::exists(filePath) || fs::file_size(filePath) == 0) {
+        std::ofstream out(filePath, std::ios::out | std::ios::trunc);
+        if (out.is_open()) {
+            out << seedContent;
+        }
+    }
+}
+
+} // namespace
 
 FileManager::FileManager(const std::string& dataDir) : dataDirectory(dataDir) {
     initializeDataFiles();
@@ -29,7 +158,7 @@ bool FileManager::replaceFileWithTemp(const std::string& origPath, const std::st
         }
         fs::rename(tempPath, origPath);
         return true;
-    } catch (const std::exception& e) {
+    } catch (const std::exception&) {
         // Fallback copy if rename across filesystems fails
         std::ifstream src(tempPath, std::ios::binary);
         std::ofstream dst(origPath, std::ios::binary | std::ios::trunc);
@@ -45,160 +174,150 @@ bool FileManager::replaceFileWithTemp(const std::string& origPath, const std::st
 }
 
 void FileManager::initializeDataFiles() {
-    // 1. Ensure directory exists
     try {
         if (!fs::exists(dataDirectory)) {
             fs::create_directories(dataDirectory);
         }
     } catch (...) {}
 
-    // 2. Initialize users.txt if not exists or empty
-    std::string usersPath = getUsersFilePath();
-    bool needUsers = false;
-    if (!fs::exists(usersPath) || fs::file_size(usersPath) == 0) {
-        needUsers = true;
-    }
-    if (needUsers) {
-        std::ofstream uOut(usersPath, std::ios::out | std::ios::trunc);
-        if (uOut.is_open()) {
-            // username|password|role|associatedId|fullName
-            uOut << "admin|admin123|Admin||Administrator\n";
-            uOut << "student1|pass123|Student|STU101|Rahul Sharma\n";
-            uOut << "student2|pass123|Student|STU102|Priya Patel\n";
-            uOut << "driver1|pass123|Driver|DRV01|Rajesh Kumar\n";
-            uOut << "driver2|pass123|Driver|DRV02|Vikram Singh\n";
-            uOut.close();
-        }
-    }
+    // 1. users.txt
+    writeSeedIfMissing(getUsersFilePath(),
+        "admin|admin123|Admin||Administrator\n"
+        "student1|pass123|Student|STU101|Rahul Sharma\n"
+        "student2|pass123|Student|STU102|Priya Patel\n"
+        "student3|pass123|Student|STU103|Amit Verma\n"
+        "student4|pass123|Student|STU104|Sneha Gupta\n"
+        "student5|pass123|Student|STU105|Rohan Mehra\n"
+        "student6|pass123|Student|STU106|Ananya Roy\n"
+        "driver1|pass123|Driver|DRV01|Rajesh Kumar\n"
+        "driver2|pass123|Driver|DRV02|Vikram Singh\n"
+        "driver3|pass123|Driver|DRV03|Mahesh Verma\n"
+        "driver4|pass123|Driver|DRV04|Suresh Nair\n"
+        "driver5|pass123|Driver|DRV05|Kuldeep Yadav\n"
+    );
 
-    // 3. Initialize buses.txt if empty
-    std::string busesPath = getBusesFilePath();
-    if (!fs::exists(busesPath) || fs::file_size(busesPath) == 0) {
-        std::ofstream bOut(busesPath, std::ios::out | std::ios::trunc);
-        if (bOut.is_open()) {
-            // busId|regNumber|capacity|occupiedSeats|assignedDriver|routeId|status
-            bOut << "BUS01|DL-01-AB-1001|40|2|Rajesh Kumar|R01|Active\n";
-            bOut << "BUS02|DL-01-CD-2002|35|1|Vikram Singh|R02|Active\n";
-            bOut << "BUS03|DL-01-EF-3003|45|0|None|R03|Active\n";
-            bOut << "BUS04|DL-01-GH-4004|30|0|None|None|Maintenance\n";
-            bOut.close();
-        }
-    }
+    // 2. buses.txt
+    writeSeedIfMissing(getBusesFilePath(),
+        "BUS01|DL-01-AB-1001|40|5|Rajesh Kumar|R01|Active|Full Day|College\n"
+        "BUS02|DL-01-CD-2002|35|3|Vikram Singh|R02|Active|Half Day (Morning)|South Extension\n"
+        "BUS03|DL-01-EF-3003|45|2|Suresh Nair|R03|Active|Full Day|Civil Lines\n"
+        "BUS04|DL-01-GH-4004|30|0|None|None|Maintenance|Half Day (Evening)|Central Workshop\n"
+        "BUS05|DL-01-JK-5005|40|3|Mahesh Verma|R04|Active|Full Day|West Terminal\n"
+        "BUS06|DL-01-LM-6006|35|2|Kuldeep Yadav|R05|Active|Half Day (Morning)|North Campus\n"
+    );
 
-    // 4. Initialize drivers.txt if empty
-    std::string driversPath = getDriversFilePath();
-    if (!fs::exists(driversPath) || fs::file_size(driversPath) == 0) {
-        std::ofstream dOut(driversPath, std::ios::out | std::ios::trunc);
-        if (dOut.is_open()) {
-            // id|name|phone|licenseNumber|assignedBus|experienceYears|email
-            dOut << "DRV01|Rajesh Kumar|9876543210|DL-2015-998877|BUS01|8|rajesh@college.edu\n";
-            dOut << "DRV02|Vikram Singh|9811223344|DL-2018-445566|BUS02|5|vikram@college.edu\n";
-            dOut << "DRV03|Mahesh Verma|9822334455|DL-2012-112233|None|12|mahesh@college.edu\n";
-            dOut.close();
-        }
-    }
+    // 3. drivers.txt
+    writeSeedIfMissing(getDriversFilePath(),
+        "DRV01|Rajesh Kumar|9876543210|DL-2015-998877|BUS01|8|rajesh@college.edu\n"
+        "DRV02|Vikram Singh|9811223344|DL-2018-445566|BUS02|5|vikram@college.edu\n"
+        "DRV03|Mahesh Verma|9822334455|DL-2012-112233|BUS05|12|mahesh@college.edu\n"
+        "DRV04|Suresh Nair|9833445566|DL-2016-778899|BUS03|6|suresh@college.edu\n"
+        "DRV05|Kuldeep Yadav|9844556677|DL-2019-332211|BUS06|4|kuldeep@college.edu\n"
+    );
 
-    // 5. Initialize routes.txt if empty
-    std::string routesPath = getRoutesFilePath();
-    if (!fs::exists(routesPath) || fs::file_size(routesPath) == 0) {
-        std::ofstream rOut(routesPath, std::ios::out | std::ios::trunc);
-        if (rOut.is_open()) {
-            // routeId|routeName|startPoint|endPoint|stops (semicolon)|pickupTime|dropTime|assignedBus
-            rOut << "R01|North City Express|City Centre|College Campus|City Centre;Metro Gate 3;Sector 14;Tech Hub;College|07:30 AM|05:00 PM|BUS01\n";
-            rOut << "R02|South Suburban Line|South Extension|College Campus|South Extension;Green Park;Ring Road;University Junction;College|07:15 AM|05:15 PM|BUS02\n";
-            rOut << "R03|East River Route|East Crossing|College Campus|East Crossing;Civil Lines;River Bridge;College|07:45 AM|04:45 PM|BUS03\n";
-            rOut.close();
-        }
-    }
+    // 4. routes.txt
+    writeSeedIfMissing(getRoutesFilePath(),
+        "R01|North City Express|City Centre|College Campus|City Centre;Metro Gate 3;Sector 14;Tech Hub;College|07:30 AM|05:00 PM|BUS01\n"
+        "R02|South Suburban Line|South Extension|College Campus|South Extension;Green Park;Ring Road;University Junction;College|07:15 AM|05:15 PM|BUS02\n"
+        "R03|East River Route|East Crossing|College Campus|East Crossing;Civil Lines;River Bridge;College|07:45 AM|04:45 PM|BUS03\n"
+        "R04|West Highway Corridor|West Terminal|College Campus|West Terminal;Highway Flyover;Industrial Area;College|07:20 AM|05:10 PM|BUS05\n"
+        "R05|North Metro Shuttle|North Campus|College Campus|North Campus;Model Town;Vishwa Vidyalaya;Kashmere Gate;College|07:35 AM|05:00 PM|BUS06\n"
+    );
 
-    // 6. Initialize students.txt if empty
-    std::string studentsPath = getStudentsFilePath();
-    if (!fs::exists(studentsPath) || fs::file_size(studentsPath) == 0) {
-        std::ofstream sOut(studentsPath, std::ios::out | std::ios::trunc);
-        if (sOut.is_open()) {
-            // id|name|department|semester|phone|address|busNumber|pickupPoint|seatNumber|email
-            sOut << "STU101|Rahul Sharma|Computer Science|5|9876500001|12/B Baker Street|BUS01|Sector 14|1|rahul@college.edu\n";
-            sOut << "STU102|Priya Patel|Electronics|3|9876500002|45 Lake View Residency|BUS01|Metro Gate 3|2|priya@college.edu\n";
-            sOut << "STU103|Amit Verma|Mechanical|7|9876500003|88 Model Town|BUS02|Green Park|1|amit@college.edu\n";
-            sOut << "STU104|Sneha Gupta|Information Tech|4|9876500004|202 Sunrise Apartments|None|None|0|sneha@college.edu\n";
-            sOut.close();
-        }
-    }
+    // 5. students.txt
+    writeSeedIfMissing(getStudentsFilePath(),
+        "STU101|Rahul Sharma|Computer Science|5|9876500001|12/B Baker Street|BUS01|Sector 14|1|rahul@college.edu\n"
+        "STU102|Priya Patel|Electronics|3|9876500002|45 Lake View Residency|BUS01|Metro Gate 3|2|priya@college.edu\n"
+        "STU103|Amit Verma|Mechanical|7|9876500003|88 Model Town|BUS02|Green Park|1|amit@college.edu\n"
+        "STU104|Sneha Gupta|Information Tech|4|9876500004|202 Sunrise Apartments|BUS02|Ring Road|2|sneha@college.edu\n"
+        "STU105|Rohan Mehra|Civil|6|9876500005|14 Palm Avenue|BUS03|Civil Lines|1|rohan@college.edu\n"
+        "STU106|Ananya Roy|Management|2|9876500006|73 Royal Gardens|BUS01|City Centre|3|ananya@college.edu\n"
+        "STU107|Kavita Joshi|Biotechnology|4|9876500007|56 Green Valley|BUS02|University Junction|3|kavita@college.edu\n"
+        "STU108|Aditya Kapoor|Computer Science|6|9876500008|19 Cyber Enclave|BUS01|Tech Hub|4|aditya@college.edu\n"
+        "STU109|Pooja Hegde|Electrical|5|9876500009|104 Blossom Heights|BUS03|River Bridge|2|pooja@college.edu\n"
+        "STU110|Manish Tiwari|Mechanical|3|9876500010|89 Industrial Way|BUS05|Industrial Area|1|manish@college.edu\n"
+        "STU111|Simran Kaur|Civil|7|9876500011|22 Airport Road|BUS05|Highway Flyover|2|simran@college.edu\n"
+        "STU112|Harsh Vardhan|Information Tech|1|9876500012|404 Lotus Tower|BUS06|Model Town|1|harsh@college.edu\n"
+        "STU113|Divya Chawla|Computer Science|3|9876500013|17 Heritage Villa|BUS06|Kashmere Gate|2|divya@college.edu\n"
+        "STU114|Aryan Malhotra|Management|4|9876500014|92 Sector 21|BUS05|West Terminal|3|aryan@college.edu\n"
+        "STU115|Neha Kulkarni|Electronics|5|9876500015|31 Orchid Gardens|None|None|0|neha@college.edu\n"
+    );
 
-    // 7. Initialize seats.txt if empty
-    std::string seatsPath = getSeatsFilePath();
-    if (!fs::exists(seatsPath) || fs::file_size(seatsPath) == 0) {
-        std::ofstream stOut(seatsPath, std::ios::out | std::ios::trunc);
-        if (stOut.is_open()) {
-            // busId|seatNumber|studentId|studentName|allocationDate
-            stOut << "BUS01|1|STU101|Rahul Sharma|2026-11-01\n";
-            stOut << "BUS01|2|STU102|Priya Patel|2026-11-02\n";
-            stOut << "BUS02|1|STU103|Amit Verma|2026-11-03\n";
-            stOut.close();
-        }
-    }
+    // 6. seats.txt
+    writeSeedIfMissing(getSeatsFilePath(),
+        "BUS01|1|STU101|Rahul Sharma|2026-11-01\n"
+        "BUS01|2|STU102|Priya Patel|2026-11-02\n"
+        "BUS01|3|STU106|Ananya Roy|2026-11-05\n"
+        "BUS01|4|STU108|Aditya Kapoor|2026-11-06\n"
+        "BUS01|5|Traveler (Day Pass)|Tushar Gahlot|2026-11-18\n"
+        "BUS02|1|STU103|Amit Verma|2026-11-03\n"
+        "BUS02|2|STU104|Sneha Gupta|2026-11-04\n"
+        "BUS02|3|STU107|Kavita Joshi|2026-11-07\n"
+        "BUS03|1|STU105|Rohan Mehra|2026-11-05\n"
+        "BUS03|2|STU109|Pooja Hegde|2026-11-08\n"
+        "BUS05|1|STU110|Manish Tiwari|2026-11-09\n"
+        "BUS05|2|STU111|Simran Kaur|2026-11-10\n"
+        "BUS05|3|STU114|Aryan Malhotra|2026-11-11\n"
+        "BUS06|1|STU112|Harsh Vardhan|2026-11-12\n"
+        "BUS06|2|STU113|Divya Chawla|2026-11-13\n"
+    );
 
-    // 8. Initialize fees.txt if empty
-    std::string feesPath = getFeesFilePath();
-    if (!fs::exists(feesPath) || fs::file_size(feesPath) == 0) {
-        std::ofstream fOut(feesPath, std::ios::out | std::ios::trunc);
-        if (fOut.is_open()) {
-            // feeId|studentId|studentName|totalAmount|paidAmount|paymentDate|paymentMethod|receiptNumber
-            fOut << "FEE001|STU101|Rahul Sharma|15000.00|15000.00|2026-11-01|UPI|REC-2026-101\n";
-            fOut << "FEE002|STU102|Priya Patel|15000.00|8000.00|2026-11-02|Card|REC-2026-102\n";
-            fOut << "FEE003|STU103|Amit Verma|15000.00|15000.00|2026-11-03|Cash|REC-2026-103\n";
-            fOut << "FEE004|STU104|Sneha Gupta|15000.00|0.00||Pending|\n";
-            fOut.close();
-        }
-    }
+    // 7. attendance.txt
+    writeSeedIfMissing(getAttendanceFilePath(),
+        "ATT001|2026-11-14|BUS01|STU101|Rahul Sharma|Present|Boarded at Sector 14\n"
+        "ATT002|2026-11-14|BUS01|STU102|Priya Patel|Present|Boarded at Metro Gate 3\n"
+        "ATT003|2026-11-15|BUS01|STU101|Rahul Sharma|Present|Boarded on time\n"
+        "ATT004|2026-11-15|BUS01|STU102|Priya Patel|Absent|Notified in advance\n"
+        "ATT005|2026-11-15|BUS02|STU103|Amit Verma|Present|Boarded at Green Park\n"
+        "ATT006|2026-11-15|BUS02|STU104|Sneha Gupta|Present|Boarded at Ring Road\n"
+        "ATT007|2026-11-17|BUS01|STU101|Rahul Sharma|Present|Boarded on time\n"
+        "ATT008|2026-11-17|BUS01|STU102|Priya Patel|Present|Boarded on time\n"
+        "ATT009|2026-11-17|BUS01|STU106|Ananya Roy|Present|Boarded at City Centre\n"
+        "ATT010|2026-11-17|BUS02|STU103|Amit Verma|Present|Boarded on time\n"
+        "ATT011|2026-11-17|BUS02|STU107|Kavita Joshi|Present|Boarded at University Junction\n"
+        "ATT012|2026-11-17|BUS03|STU105|Rohan Mehra|Present|Boarded at Civil Lines\n"
+        "ATT013|2026-11-17|BUS03|STU109|Pooja Hegde|Absent|Medical leave\n"
+        "ATT014|2026-11-17|BUS05|STU110|Manish Tiwari|Present|Boarded at Industrial Area\n"
+        "ATT015|2026-11-17|BUS05|STU111|Simran Kaur|Present|Boarded at Highway Flyover\n"
+        "ATT016|2026-11-17|BUS06|STU112|Harsh Vardhan|Present|Boarded at Model Town\n"
+        "ATT017|2026-11-17|BUS06|STU113|Divya Chawla|Present|Boarded at Kashmere Gate\n"
+    );
 
-    // 9. Initialize attendance.txt if empty
-    std::string attPath = getAttendanceFilePath();
-    if (!fs::exists(attPath) || fs::file_size(attPath) == 0) {
-        std::ofstream aOut(attPath, std::ios::out | std::ios::trunc);
-        if (aOut.is_open()) {
-            // recordId|date|busId|studentId|studentName|status|remarks
-            aOut << "ATT001|2026-11-14|BUS01|STU101|Rahul Sharma|Present|Boarded at Sector 14\n";
-            aOut << "ATT002|2026-11-14|BUS01|STU102|Priya Patel|Present|Boarded at Metro Gate 3\n";
-            aOut << "ATT003|2026-11-15|BUS01|STU101|Rahul Sharma|Present|Boarded on time\n";
-            aOut << "ATT004|2026-11-15|BUS01|STU102|Priya Patel|Absent|Notified in advance\n";
-            aOut.close();
-        }
-    }
+    // 8. fees.txt
+    writeSeedIfMissing(getFeesFilePath(),
+        "FEE001|STU101|Rahul Sharma|15000.00|15000.00|2026-11-01|UPI|REC-2026-101\n"
+        "FEE002|STU102|Priya Patel|15000.00|10000.00|2026-11-15|UPI|REC-2026-102\n"
+        "FEE003|STU103|Amit Verma|15000.00|15000.00|2026-11-03|Cash|REC-2026-103\n"
+        "FEE004|STU104|Sneha Gupta|15000.00|10000.00|2026-11-04|UPI|REC-2026-104\n"
+        "FEE005|STU105|Rohan Mehra|15000.00|15000.00|2026-11-05|NetBanking|REC-2026-105\n"
+        "FEE006|STU106|Ananya Roy|15000.00|15000.00|2026-11-06|UPI|REC-2026-106\n"
+        "FEE007|STU107|Kavita Joshi|15000.00|7500.00|2026-11-07|Card|REC-2026-107\n"
+        "FEE008|STU108|Aditya Kapoor|15000.00|15000.00|2026-11-08|UPI|REC-2026-108\n"
+        "FEE009|STU109|Pooja Hegde|15000.00|15000.00|2026-11-09|NetBanking|REC-2026-109\n"
+        "FEE010|STU110|Manish Tiwari|15000.00|15000.00|2026-11-10|UPI|REC-2026-110\n"
+        "FEE011|STU111|Simran Kaur|15000.00|10000.00|2026-11-11|UPI|REC-2026-111\n"
+        "FEE012|STU112|Harsh Vardhan|15000.00|15000.00|2026-11-12|NetBanking|REC-2026-112\n"
+        "FEE013|STU113|Divya Chawla|15000.00|15000.00|2026-11-13|UPI|REC-2026-113\n"
+        "FEE014|STU114|Aryan Malhotra|15000.00|5000.00|2026-11-14|Cash|REC-2026-114\n"
+        "FEE015|STU115|Neha Kulkarni|15000.00|0.00||Pending|\n"
+    );
 
-    // 10. Initialize maintenance.txt if empty
-    std::string mPath = getMaintenanceFilePath();
-    if (!fs::exists(mPath) || fs::file_size(mPath) == 0) {
-        std::ofstream mOut(mPath, std::ios::out | std::ios::trunc);
-        if (mOut.is_open()) {
-            // recordId|busId|serviceType|cost|serviceDate|workshop|remarks
-            mOut << "MNT001|BUS01|Oil Change & Filter|4500.00|2026-10-15|Authorized Service Center|Routine 10k km service\n";
-            mOut << "MNT002|BUS02|Brake Pad Replacement|8200.00|2026-10-20|City Auto Garage|Replaced front and rear brake pads\n";
-            mOut << "MNT003|BUS04|Engine Diagnostics|12500.00|2026-11-05|College Workshop|Major engine overhaul, bus under repair\n";
-            mOut.close();
-        }
-    }
+    // 9. maintenance.txt
+    writeSeedIfMissing(getMaintenanceFilePath(),
+        "MNT001|BUS01|Oil Change & Filter|4500.00|2026-10-15|Authorized Service Center|Routine 10,000 km periodic servicing\n"
+        "MNT002|BUS02|Brake Pad Replacement|8200.00|2026-10-20|City Auto Garage|Replaced front and rear brake pads\n"
+        "MNT003|BUS04|Engine Diagnostics & Repair|18500.00|2026-11-05|College Central Workshop|Major transmission and engine checkup, under repair\n"
+        "MNT004|BUS03|Tire Alignment & Balancing|3200.00|2026-11-10|Express Radial Tyre Center|Front wheel balance and rotation\n"
+        "MNT005|BUS05|AC Compressor Overhaul|11500.00|2026-11-08|CoolAir Systems Workshop|Serviced cabin dual-zone air conditioning\n"
+        "MNT006|BUS06|Battery & Alternator Check|4200.00|2026-11-12|National Exide Battery Care|Replaced auxiliary starting battery\n"
+    );
 }
 
 // ==========================================
 // STUDENT OPERATIONS
 // ==========================================
 std::vector<Student> FileManager::getAllStudents() {
-    std::vector<Student> list;
-    std::ifstream in(getStudentsFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            Student s = Student::deserialize(line);
-            if (!s.getId().empty()) {
-                list.push_back(s);
-            }
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<Student>(getStudentsFilePath());
 }
 
 bool FileManager::addStudent(const Student& student) {
@@ -207,8 +326,7 @@ bool FileManager::addStudent(const Student& student) {
     }
 
     // Check duplicate ID
-    std::vector<Student> all = getAllStudents();
-    for (const auto& existing : all) {
+    for (const auto& existing : getAllStudents()) {
         if (existing.getId() == student.getId()) {
             throw DuplicateIdException(student.getId(), "Student");
         }
@@ -258,38 +376,13 @@ bool FileManager::updateStudent(const Student& student) {
         throw ValidationException("Student ID", "ID cannot be empty");
     }
 
-    std::string origPath = getStudentsFilePath();
+    Student oldStudent = getStudentById(student.getId());
     std::string tempPath = dataDirectory + "/temp_students.txt";
 
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "update");
-    }
-
-    Student oldStudent = getStudentById(student.getId());
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Student s = Student::deserialize(line);
-        if (s.getId() == student.getId()) {
-            out << student.serialize() << "\n";
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(student.getId(), "Student");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
+    updateRecordInFile<Student>(getStudentsFilePath(), tempPath,
+        student, [&](const Student& s) { return s.getId() == student.getId(); },
+        student.getId(), "Student",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 
     // Handle bus assignment changes
     if (oldStudent.getBusNumber() != student.getBusNumber()) {
@@ -324,38 +417,13 @@ bool FileManager::updateStudent(const Student& student) {
 }
 
 bool FileManager::deleteStudent(const std::string& studentId) {
-    std::string origPath = getStudentsFilePath();
+    Student toDelete = getStudentById(studentId);
     std::string tempPath = dataDirectory + "/temp_students.txt";
 
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "delete");
-    }
-
-    Student toDelete = getStudentById(studentId);
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Student s = Student::deserialize(line);
-        if (s.getId() == studentId) {
-            found = true;
-            // Skip writing to delete
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(studentId, "Student");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
+    deleteRecordFromFile<Student>(getStudentsFilePath(), tempPath,
+        [&](const Student& s) { return s.getId() == studentId; },
+        studentId, "Student",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 
     // Release bus seat and decrease bus occupied count
     if (toDelete.getBusNumber() != "None" && !toDelete.getBusNumber().empty()) {
@@ -371,58 +439,30 @@ bool FileManager::deleteStudent(const std::string& studentId) {
 }
 
 Student FileManager::getStudentById(const std::string& studentId) {
-    std::ifstream in(getStudentsFilePath());
-    if (!in.is_open()) return Student();
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Student s = Student::deserialize(line);
-        if (s.getId() == studentId) {
-            return s;
-        }
-    }
-    return Student();
+    return findRecordInFile<Student>(getStudentsFilePath(), [&](const Student& s) { return s.getId() == studentId; });
 }
 
-// Function Overload 1: Search by text query across ID, Name, Department, Bus
 std::vector<Student> FileManager::searchStudents(const std::string& query) {
-    std::vector<Student> results;
     if (query.empty()) return getAllStudents();
-
     std::string qLower = query;
     std::transform(qLower.begin(), qLower.end(), qLower.begin(), ::tolower);
 
-    std::vector<Student> all = getAllStudents();
-    for (const auto& s : all) {
-        std::string sId = s.getId();
-        std::string sName = s.getName();
-        std::string sDept = s.getDepartment();
-        std::string sBus = s.getBusNumber();
-        std::string sPickup = s.getPickupPoint();
-
-        std::transform(sId.begin(), sId.end(), sId.begin(), ::tolower);
-        std::transform(sName.begin(), sName.end(), sName.begin(), ::tolower);
-        std::transform(sDept.begin(), sDept.end(), sDept.begin(), ::tolower);
-        std::transform(sBus.begin(), sBus.end(), sBus.begin(), ::tolower);
-        std::transform(sPickup.begin(), sPickup.end(), sPickup.begin(), ::tolower);
-
-        if (sId.find(qLower) != std::string::npos ||
-            sName.find(qLower) != std::string::npos ||
-            sDept.find(qLower) != std::string::npos ||
-            sBus.find(qLower) != std::string::npos ||
-            sPickup.find(qLower) != std::string::npos) {
+    std::vector<Student> results;
+    for (const auto& s : getAllStudents()) {
+        if (containsIgnoreCase(s.getId(), qLower) ||
+            containsIgnoreCase(s.getName(), qLower) ||
+            containsIgnoreCase(s.getDepartment(), qLower) ||
+            containsIgnoreCase(s.getBusNumber(), qLower) ||
+            containsIgnoreCase(s.getPickupPoint(), qLower)) {
             results.push_back(s);
         }
     }
     return results;
 }
 
-// Function Overload 2: Search by department and semester
 std::vector<Student> FileManager::searchStudents(const std::string& department, int semester) {
     std::vector<Student> results;
-    std::vector<Student> all = getAllStudents();
-    for (const auto& s : all) {
+    for (const auto& s : getAllStudents()) {
         bool deptMatch = department.empty() || s.getDepartment() == department;
         bool semMatch = (semester <= 0) || (s.getSemester() == semester);
         if (deptMatch && semMatch) {
@@ -436,19 +476,7 @@ std::vector<Student> FileManager::searchStudents(const std::string& department, 
 // BUS OPERATIONS
 // ==========================================
 std::vector<Bus> FileManager::getAllBuses() {
-    std::vector<Bus> list;
-    std::ifstream in(getBusesFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            Bus b = Bus::deserialize(line);
-            if (!b.getBusId().empty()) list.push_back(b);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<Bus>(getBusesFilePath());
 }
 
 bool FileManager::addBus(const Bus& bus) {
@@ -456,8 +484,7 @@ bool FileManager::addBus(const Bus& bus) {
         throw ValidationException("Bus ID", "ID cannot be empty");
     }
 
-    std::vector<Bus> all = getAllBuses();
-    for (const auto& b : all) {
+    for (const auto& b : getAllBuses()) {
         if (b.getBusId() == bus.getBusId()) {
             throw DuplicateIdException(bus.getBusId(), "Bus");
         }
@@ -473,113 +500,39 @@ bool FileManager::addBus(const Bus& bus) {
 }
 
 bool FileManager::updateBus(const Bus& bus) {
-    std::string origPath = getBusesFilePath();
     std::string tempPath = dataDirectory + "/temp_buses.txt";
-
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "update");
-    }
-
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Bus b = Bus::deserialize(line);
-        if (b.getBusId() == bus.getBusId()) {
-            out << bus.serialize() << "\n";
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(bus.getBusId(), "Bus");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
-    return true;
+    return updateRecordInFile<Bus>(getBusesFilePath(), tempPath,
+        bus, [&](const Bus& b) { return b.getBusId() == bus.getBusId(); },
+        bus.getBusId(), "Bus",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 }
 
 bool FileManager::deleteBus(const std::string& busId) {
-    std::string origPath = getBusesFilePath();
     std::string tempPath = dataDirectory + "/temp_buses.txt";
-
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "delete");
-    }
-
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Bus b = Bus::deserialize(line);
-        if (b.getBusId() == busId) {
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(busId, "Bus");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
-    return true;
+    return deleteRecordFromFile<Bus>(getBusesFilePath(), tempPath,
+        [&](const Bus& b) { return b.getBusId() == busId; },
+        busId, "Bus",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 }
 
 Bus FileManager::getBusById(const std::string& busId) {
-    std::ifstream in(getBusesFilePath());
-    if (!in.is_open()) return Bus();
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Bus b = Bus::deserialize(line);
-        if (b.getBusId() == busId) return b;
-    }
-    return Bus();
+    return findRecordInFile<Bus>(getBusesFilePath(), [&](const Bus& b) { return b.getBusId() == busId; });
 }
 
 std::vector<Bus> FileManager::searchBuses(const std::string& query) {
-    std::vector<Bus> results;
     if (query.empty()) return getAllBuses();
-
     std::string qLower = query;
     std::transform(qLower.begin(), qLower.end(), qLower.begin(), ::tolower);
 
-    std::vector<Bus> all = getAllBuses();
-    for (const auto& b : all) {
-        std::string bId = b.getBusId();
-        std::string reg = b.getRegNumber();
-        std::string drv = b.getAssignedDriver();
-        std::string stat = b.getStatus();
-        std::string rId = b.getRouteId();
-
-        std::transform(bId.begin(), bId.end(), bId.begin(), ::tolower);
-        std::transform(reg.begin(), reg.end(), reg.begin(), ::tolower);
-        std::transform(drv.begin(), drv.end(), drv.begin(), ::tolower);
-        std::transform(stat.begin(), stat.end(), stat.begin(), ::tolower);
-        std::transform(rId.begin(), rId.end(), rId.begin(), ::tolower);
-
-        if (bId.find(qLower) != std::string::npos ||
-            reg.find(qLower) != std::string::npos ||
-            drv.find(qLower) != std::string::npos ||
-            stat.find(qLower) != std::string::npos ||
-            rId.find(qLower) != std::string::npos) {
+    std::vector<Bus> results;
+    for (const auto& b : getAllBuses()) {
+        if (containsIgnoreCase(b.getBusId(), qLower) ||
+            containsIgnoreCase(b.getRegNumber(), qLower) ||
+            containsIgnoreCase(b.getAssignedDriver(), qLower) ||
+            containsIgnoreCase(b.getStatus(), qLower) ||
+            containsIgnoreCase(b.getRouteId(), qLower) ||
+            containsIgnoreCase(b.getShiftType(), qLower) ||
+            containsIgnoreCase(b.getCurrentLocation(), qLower)) {
             results.push_back(b);
         }
     }
@@ -590,19 +543,7 @@ std::vector<Bus> FileManager::searchBuses(const std::string& query) {
 // DRIVER OPERATIONS
 // ==========================================
 std::vector<Driver> FileManager::getAllDrivers() {
-    std::vector<Driver> list;
-    std::ifstream in(getDriversFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            Driver d = Driver::deserialize(line);
-            if (!d.getId().empty()) list.push_back(d);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<Driver>(getDriversFilePath());
 }
 
 bool FileManager::addDriver(const Driver& driver) {
@@ -610,8 +551,7 @@ bool FileManager::addDriver(const Driver& driver) {
         throw ValidationException("Driver ID", "ID cannot be empty");
     }
 
-    std::vector<Driver> all = getAllDrivers();
-    for (const auto& d : all) {
+    for (const auto& d : getAllDrivers()) {
         if (d.getId() == driver.getId()) {
             throw DuplicateIdException(driver.getId(), "Driver");
         }
@@ -624,7 +564,7 @@ bool FileManager::addDriver(const Driver& driver) {
     out << driver.serialize() << "\n";
     out.close();
 
-    // If driver assigned to a bus, update the bus record as well
+    // If driver assigned to a bus, update the bus record
     if (driver.getAssignedBus() != "None" && !driver.getAssignedBus().empty()) {
         Bus b = getBusById(driver.getAssignedBus());
         if (!b.getBusId().empty()) {
@@ -636,37 +576,11 @@ bool FileManager::addDriver(const Driver& driver) {
 }
 
 bool FileManager::updateDriver(const Driver& driver) {
-    std::string origPath = getDriversFilePath();
     std::string tempPath = dataDirectory + "/temp_drivers.txt";
-
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "update");
-    }
-
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Driver d = Driver::deserialize(line);
-        if (d.getId() == driver.getId()) {
-            out << driver.serialize() << "\n";
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(driver.getId(), "Driver");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
+    bool ok = updateRecordInFile<Driver>(getDriversFilePath(), tempPath,
+        driver, [&](const Driver& d) { return d.getId() == driver.getId(); },
+        driver.getId(), "Driver",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 
     // Update bus assigned driver if applicable
     if (driver.getAssignedBus() != "None" && !driver.getAssignedBus().empty()) {
@@ -676,41 +590,17 @@ bool FileManager::updateDriver(const Driver& driver) {
             updateBus(b);
         }
     }
-    return true;
+    return ok;
 }
 
 bool FileManager::deleteDriver(const std::string& driverId) {
-    std::string origPath = getDriversFilePath();
+    Driver toDelete = getDriverById(driverId);
     std::string tempPath = dataDirectory + "/temp_drivers.txt";
 
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "delete");
-    }
-
-    Driver toDelete = getDriverById(driverId);
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Driver d = Driver::deserialize(line);
-        if (d.getId() == driverId) {
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(driverId, "Driver");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
+    bool ok = deleteRecordFromFile<Driver>(getDriversFilePath(), tempPath,
+        [&](const Driver& d) { return d.getId() == driverId; },
+        driverId, "Driver",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 
     // Unassign from bus if was assigned
     if (toDelete.getAssignedBus() != "None" && !toDelete.getAssignedBus().empty()) {
@@ -720,48 +610,25 @@ bool FileManager::deleteDriver(const std::string& driverId) {
             updateBus(b);
         }
     }
-    return true;
+    return ok;
 }
 
 Driver FileManager::getDriverById(const std::string& driverId) {
-    std::ifstream in(getDriversFilePath());
-    if (!in.is_open()) return Driver();
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Driver d = Driver::deserialize(line);
-        if (d.getId() == driverId) return d;
-    }
-    return Driver();
+    return findRecordInFile<Driver>(getDriversFilePath(), [&](const Driver& d) { return d.getId() == driverId; });
 }
 
 std::vector<Driver> FileManager::searchDrivers(const std::string& query) {
-    std::vector<Driver> results;
     if (query.empty()) return getAllDrivers();
-
     std::string qLower = query;
     std::transform(qLower.begin(), qLower.end(), qLower.begin(), ::tolower);
 
-    std::vector<Driver> all = getAllDrivers();
-    for (const auto& d : all) {
-        std::string dId = d.getId();
-        std::string name = d.getName();
-        std::string phone = d.getPhone();
-        std::string lic = d.getLicenseNumber();
-        std::string bus = d.getAssignedBus();
-
-        std::transform(dId.begin(), dId.end(), dId.begin(), ::tolower);
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        std::transform(phone.begin(), phone.end(), phone.begin(), ::tolower);
-        std::transform(lic.begin(), lic.end(), lic.begin(), ::tolower);
-        std::transform(bus.begin(), bus.end(), bus.begin(), ::tolower);
-
-        if (dId.find(qLower) != std::string::npos ||
-            name.find(qLower) != std::string::npos ||
-            phone.find(qLower) != std::string::npos ||
-            lic.find(qLower) != std::string::npos ||
-            bus.find(qLower) != std::string::npos) {
+    std::vector<Driver> results;
+    for (const auto& d : getAllDrivers()) {
+        if (containsIgnoreCase(d.getId(), qLower) ||
+            containsIgnoreCase(d.getName(), qLower) ||
+            containsIgnoreCase(d.getPhone(), qLower) ||
+            containsIgnoreCase(d.getLicenseNumber(), qLower) ||
+            containsIgnoreCase(d.getAssignedBus(), qLower)) {
             results.push_back(d);
         }
     }
@@ -772,19 +639,7 @@ std::vector<Driver> FileManager::searchDrivers(const std::string& query) {
 // ROUTE OPERATIONS
 // ==========================================
 std::vector<Route> FileManager::getAllRoutes() {
-    std::vector<Route> list;
-    std::ifstream in(getRoutesFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            Route r = Route::deserialize(line);
-            if (!r.getRouteId().empty()) list.push_back(r);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<Route>(getRoutesFilePath());
 }
 
 bool FileManager::addRoute(const Route& route) {
@@ -792,8 +647,7 @@ bool FileManager::addRoute(const Route& route) {
         throw ValidationException("Route ID", "ID cannot be empty");
     }
 
-    std::vector<Route> all = getAllRoutes();
-    for (const auto& r : all) {
+    for (const auto& r : getAllRoutes()) {
         if (r.getRouteId() == route.getRouteId()) {
             throw DuplicateIdException(route.getRouteId(), "Route");
         }
@@ -818,37 +672,11 @@ bool FileManager::addRoute(const Route& route) {
 }
 
 bool FileManager::updateRoute(const Route& route) {
-    std::string origPath = getRoutesFilePath();
     std::string tempPath = dataDirectory + "/temp_routes.txt";
-
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "update");
-    }
-
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Route r = Route::deserialize(line);
-        if (r.getRouteId() == route.getRouteId()) {
-            out << route.serialize() << "\n";
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(route.getRouteId(), "Route");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
+    bool ok = updateRecordInFile<Route>(getRoutesFilePath(), tempPath,
+        route, [&](const Route& r) { return r.getRouteId() == route.getRouteId(); },
+        route.getRouteId(), "Route",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 
     if (route.getAssignedBus() != "None" && !route.getAssignedBus().empty()) {
         Bus b = getBusById(route.getAssignedBus());
@@ -857,85 +685,34 @@ bool FileManager::updateRoute(const Route& route) {
             updateBus(b);
         }
     }
-    return true;
+    return ok;
 }
 
 bool FileManager::deleteRoute(const std::string& routeId) {
-    std::string origPath = getRoutesFilePath();
     std::string tempPath = dataDirectory + "/temp_routes.txt";
-
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "delete");
-    }
-
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Route r = Route::deserialize(line);
-        if (r.getRouteId() == routeId) {
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(routeId, "Route");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
-    return true;
+    return deleteRecordFromFile<Route>(getRoutesFilePath(), tempPath,
+        [&](const Route& r) { return r.getRouteId() == routeId; },
+        routeId, "Route",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 }
 
 Route FileManager::getRouteById(const std::string& routeId) {
-    std::ifstream in(getRoutesFilePath());
-    if (!in.is_open()) return Route();
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        Route r = Route::deserialize(line);
-        if (r.getRouteId() == routeId) return r;
-    }
-    return Route();
+    return findRecordInFile<Route>(getRoutesFilePath(), [&](const Route& r) { return r.getRouteId() == routeId; });
 }
 
 std::vector<Route> FileManager::searchRoutes(const std::string& query) {
-    std::vector<Route> results;
     if (query.empty()) return getAllRoutes();
-
     std::string qLower = query;
     std::transform(qLower.begin(), qLower.end(), qLower.begin(), ::tolower);
 
-    std::vector<Route> all = getAllRoutes();
-    for (const auto& r : all) {
-        std::string rId = r.getRouteId();
-        std::string name = r.getRouteName();
-        std::string start = r.getStartPoint();
-        std::string end = r.getEndPoint();
-        std::string stops = r.getStopsAsString();
-        std::string bus = r.getAssignedBus();
-
-        std::transform(rId.begin(), rId.end(), rId.begin(), ::tolower);
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        std::transform(start.begin(), start.end(), start.begin(), ::tolower);
-        std::transform(end.begin(), end.end(), end.begin(), ::tolower);
-        std::transform(stops.begin(), stops.end(), stops.begin(), ::tolower);
-        std::transform(bus.begin(), bus.end(), bus.begin(), ::tolower);
-
-        if (rId.find(qLower) != std::string::npos ||
-            name.find(qLower) != std::string::npos ||
-            start.find(qLower) != std::string::npos ||
-            end.find(qLower) != std::string::npos ||
-            stops.find(qLower) != std::string::npos ||
-            bus.find(qLower) != std::string::npos) {
+    std::vector<Route> results;
+    for (const auto& r : getAllRoutes()) {
+        if (containsIgnoreCase(r.getRouteId(), qLower) ||
+            containsIgnoreCase(r.getRouteName(), qLower) ||
+            containsIgnoreCase(r.getStartPoint(), qLower) ||
+            containsIgnoreCase(r.getEndPoint(), qLower) ||
+            containsIgnoreCase(r.getStopsAsString(), qLower) ||
+            containsIgnoreCase(r.getAssignedBus(), qLower)) {
             results.push_back(r);
         }
     }
@@ -946,25 +723,12 @@ std::vector<Route> FileManager::searchRoutes(const std::string& query) {
 // SEAT OPERATIONS
 // ==========================================
 std::vector<Seat> FileManager::getAllSeats() {
-    std::vector<Seat> list;
-    std::ifstream in(getSeatsFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            Seat s = Seat::deserialize(line);
-            if (!s.getBusId().empty()) list.push_back(s);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<Seat>(getSeatsFilePath());
 }
 
 std::vector<Seat> FileManager::getSeatsForBus(const std::string& busId) {
     std::vector<Seat> list;
-    std::vector<Seat> all = getAllSeats();
-    for (const auto& s : all) {
+    for (const auto& s : getAllSeats()) {
         if (s.getBusId() == busId) {
             list.push_back(s);
         }
@@ -1014,7 +778,6 @@ bool FileManager::allocateSeat(const std::string& busId, int seatNum, const std:
     // Release any previous seat this student had on any bus
     releaseSeatForStudent(studentId);
 
-    // Get current date
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
     std::tm tm_now;
@@ -1027,7 +790,6 @@ bool FileManager::allocateSeat(const std::string& busId, int seatNum, const std:
     dateStream << std::put_time(&tm_now, "%Y-%m-%d");
     std::string today = dateStream.str();
 
-    // Check if seat is already occupied by someone else
     std::string origPath = getSeatsFilePath();
     std::string tempPath = dataDirectory + "/temp_seats.txt";
 
@@ -1070,9 +832,7 @@ bool FileManager::releaseSeat(const std::string& busId, int seatNum) {
     while (std::getline(in, line)) {
         if (line.empty()) continue;
         Seat s = Seat::deserialize(line);
-        if (s.getBusId() == busId && s.getSeatNumber() == seatNum) {
-            // Remove record
-        } else {
+        if (!(s.getBusId() == busId && s.getSeatNumber() == seatNum)) {
             out << line << "\n";
         }
     }
@@ -1095,9 +855,7 @@ bool FileManager::releaseSeatForStudent(const std::string& studentId) {
     while (std::getline(in, line)) {
         if (line.empty()) continue;
         Seat s = Seat::deserialize(line);
-        if (s.getStudentId() == studentId) {
-            // Skip to remove
-        } else {
+        if (s.getStudentId() != studentId) {
             out << line << "\n";
         }
     }
@@ -1109,8 +867,7 @@ bool FileManager::releaseSeatForStudent(const std::string& studentId) {
 }
 
 Seat FileManager::getSeatForStudent(const std::string& studentId) {
-    std::vector<Seat> all = getAllSeats();
-    for (const auto& s : all) {
+    for (const auto& s : getAllSeats()) {
         if (s.getStudentId() == studentId) return s;
     }
     return Seat();
@@ -1120,25 +877,12 @@ Seat FileManager::getSeatForStudent(const std::string& studentId) {
 // ATTENDANCE OPERATIONS
 // ==========================================
 std::vector<Attendance> FileManager::getAllAttendance() {
-    std::vector<Attendance> list;
-    std::ifstream in(getAttendanceFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            Attendance a = Attendance::deserialize(line);
-            if (!a.getRecordId().empty()) list.push_back(a);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<Attendance>(getAttendanceFilePath());
 }
 
 std::vector<Attendance> FileManager::getAttendanceByBusAndDate(const std::string& busId, const std::string& date) {
     std::vector<Attendance> list;
-    std::vector<Attendance> all = getAllAttendance();
-    for (const auto& a : all) {
+    for (const auto& a : getAllAttendance()) {
         if (a.getBusId() == busId && (date.empty() || a.getDate() == date)) {
             list.push_back(a);
         }
@@ -1148,8 +892,7 @@ std::vector<Attendance> FileManager::getAttendanceByBusAndDate(const std::string
 
 std::vector<Attendance> FileManager::getAttendanceByStudent(const std::string& studentId) {
     std::vector<Attendance> list;
-    std::vector<Attendance> all = getAllAttendance();
-    for (const auto& a : all) {
+    for (const auto& a : getAllAttendance()) {
         if (a.getStudentId() == studentId) {
             list.push_back(a);
         }
@@ -1160,7 +903,6 @@ std::vector<Attendance> FileManager::getAttendanceByStudent(const std::string& s
 bool FileManager::markAttendance(const std::vector<Attendance>& records) {
     if (records.empty()) return true;
 
-    // Load existing records, replace any matching (busId, date, studentId)
     std::vector<Attendance> existing = getAllAttendance();
     std::string origPath = getAttendanceFilePath();
     std::string tempPath = dataDirectory + "/temp_attendance.txt";
@@ -1200,24 +942,11 @@ bool FileManager::markAttendance(const std::vector<Attendance>& records) {
 // FEE OPERATIONS
 // ==========================================
 std::vector<FeeRecord> FileManager::getAllFees() {
-    std::vector<FeeRecord> list;
-    std::ifstream in(getFeesFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            FeeRecord f = FeeRecord::deserialize(line);
-            if (!f.getFeeId().empty()) list.push_back(f);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<FeeRecord>(getFeesFilePath());
 }
 
 FeeRecord FileManager::getFeeByStudentId(const std::string& studentId) {
-    std::vector<FeeRecord> all = getAllFees();
-    for (const auto& f : all) {
+    for (const auto& f : getAllFees()) {
         if (f.getStudentId() == studentId) return f;
     }
     return FeeRecord();
@@ -1260,7 +989,6 @@ bool FileManager::updateFeeRecord(const FeeRecord& fee) {
     out.close();
 
     if (!found) {
-        // If not found, add it
         addFeeRecord(fee);
         fs::remove(tempPath);
         return true;
@@ -1271,35 +999,22 @@ bool FileManager::updateFeeRecord(const FeeRecord& fee) {
 }
 
 std::vector<FeeRecord> FileManager::searchFees(const std::string& query) {
-    std::vector<FeeRecord> results;
     if (query.empty()) return getAllFees();
-
     std::string qLower = query;
     std::transform(qLower.begin(), qLower.end(), qLower.begin(), ::tolower);
 
-    std::vector<FeeRecord> all = getAllFees();
-    for (const auto& f : all) {
-        std::string sId = f.getStudentId();
-        std::string name = f.getStudentName();
-        std::string stat = f.getStatus();
-        std::string rec = f.getReceiptNumber();
-
-        std::transform(sId.begin(), sId.end(), sId.begin(), ::tolower);
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        std::transform(stat.begin(), stat.end(), stat.begin(), ::tolower);
-        std::transform(rec.begin(), rec.end(), rec.begin(), ::tolower);
-
-        if (sId.find(qLower) != std::string::npos ||
-            name.find(qLower) != std::string::npos ||
-            stat.find(qLower) != std::string::npos ||
-            rec.find(qLower) != std::string::npos) {
+    std::vector<FeeRecord> results;
+    for (const auto& f : getAllFees()) {
+        if (containsIgnoreCase(f.getStudentId(), qLower) ||
+            containsIgnoreCase(f.getStudentName(), qLower) ||
+            containsIgnoreCase(f.getStatus(), qLower) ||
+            containsIgnoreCase(f.getReceiptNumber(), qLower)) {
             results.push_back(f);
         }
     }
     return results;
 }
 
-// Function Overload 1: recordPayment with detailed params
 bool FileManager::recordPayment(const std::string& studentId, double amount,
                                 const std::string& date, const std::string& method,
                                 const std::string& receipt) {
@@ -1317,7 +1032,6 @@ bool FileManager::recordPayment(const std::string& studentId, double amount,
     return updateFeeRecord(f);
 }
 
-// Function Overload 2: recordPayment with default date, method and receipt generator
 bool FileManager::recordPayment(const std::string& studentId, double amount) {
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
@@ -1339,25 +1053,12 @@ bool FileManager::recordPayment(const std::string& studentId, double amount) {
 // MAINTENANCE OPERATIONS
 // ==========================================
 std::vector<MaintenanceRecord> FileManager::getAllMaintenance() {
-    std::vector<MaintenanceRecord> list;
-    std::ifstream in(getMaintenanceFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            MaintenanceRecord m = MaintenanceRecord::deserialize(line);
-            if (!m.getRecordId().empty()) list.push_back(m);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<MaintenanceRecord>(getMaintenanceFilePath());
 }
 
 std::vector<MaintenanceRecord> FileManager::getMaintenanceForBus(const std::string& busId) {
     std::vector<MaintenanceRecord> list;
-    std::vector<MaintenanceRecord> all = getAllMaintenance();
-    for (const auto& m : all) {
+    for (const auto& m : getAllMaintenance()) {
         if (m.getBusId() == busId) list.push_back(m);
     }
     return list;
@@ -1368,8 +1069,7 @@ bool FileManager::addMaintenanceRecord(const MaintenanceRecord& record) {
         throw ValidationException("Record ID", "ID cannot be empty");
     }
 
-    std::vector<MaintenanceRecord> all = getAllMaintenance();
-    for (const auto& m : all) {
+    for (const auto& m : getAllMaintenance()) {
         if (m.getRecordId() == record.getRecordId()) {
             throw DuplicateIdException(record.getRecordId(), "Maintenance Record");
         }
@@ -1385,91 +1085,26 @@ bool FileManager::addMaintenanceRecord(const MaintenanceRecord& record) {
 }
 
 bool FileManager::updateMaintenanceRecord(const MaintenanceRecord& record) {
-    std::string origPath = getMaintenanceFilePath();
     std::string tempPath = dataDirectory + "/temp_maintenance.txt";
-
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "update");
-    }
-
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        MaintenanceRecord m = MaintenanceRecord::deserialize(line);
-        if (m.getRecordId() == record.getRecordId()) {
-            out << record.serialize() << "\n";
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(record.getRecordId(), "Maintenance Record");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
-    return true;
+    return updateRecordInFile<MaintenanceRecord>(getMaintenanceFilePath(), tempPath,
+        record, [&](const MaintenanceRecord& m) { return m.getRecordId() == record.getRecordId(); },
+        record.getRecordId(), "Maintenance Record",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 }
 
 bool FileManager::deleteMaintenanceRecord(const std::string& recordId) {
-    std::string origPath = getMaintenanceFilePath();
     std::string tempPath = dataDirectory + "/temp_maintenance.txt";
-
-    std::ifstream in(origPath);
-    std::ofstream out(tempPath, std::ios::out | std::ios::trunc);
-
-    if (!in.is_open() || !out.is_open()) {
-        throw FileIOException(origPath, "delete");
-    }
-
-    bool found = false;
-    std::string line;
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        MaintenanceRecord m = MaintenanceRecord::deserialize(line);
-        if (m.getRecordId() == recordId) {
-            found = true;
-        } else {
-            out << line << "\n";
-        }
-    }
-    in.close();
-    out.close();
-
-    if (!found) {
-        fs::remove(tempPath);
-        throw NotFoundException(recordId, "Maintenance Record");
-    }
-
-    replaceFileWithTemp(origPath, tempPath);
-    return true;
+    return deleteRecordFromFile<MaintenanceRecord>(getMaintenanceFilePath(), tempPath,
+        [&](const MaintenanceRecord& m) { return m.getRecordId() == recordId; },
+        recordId, "Maintenance Record",
+        [this](const std::string& o, const std::string& t) { return replaceFileWithTemp(o, t); });
 }
 
 // ==========================================
 // USER AUTHENTICATION
 // ==========================================
 std::vector<User> FileManager::getAllUsers() {
-    std::vector<User> list;
-    std::ifstream in(getUsersFilePath());
-    if (!in.is_open()) return list;
-
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty()) {
-            User u = User::deserialize(line);
-            if (!u.getUsername().empty()) list.push_back(u);
-        }
-    }
-    in.close();
-    return list;
+    return loadRecordsFromFile<User>(getUsersFilePath());
 }
 
 bool FileManager::addUser(const User& user) {
@@ -1477,8 +1112,7 @@ bool FileManager::addUser(const User& user) {
         throw ValidationException("Credentials", "Username and password cannot be empty");
     }
 
-    std::vector<User> all = getAllUsers();
-    for (const auto& u : all) {
+    for (const auto& u : getAllUsers()) {
         if (u.getUsername() == user.getUsername()) {
             throw DuplicateIdException(user.getUsername(), "Username");
         }
@@ -1494,13 +1128,12 @@ bool FileManager::addUser(const User& user) {
 }
 
 User FileManager::authenticate(const std::string& username, const std::string& password) {
-    std::vector<User> all = getAllUsers();
-    for (const auto& u : all) {
+    for (const auto& u : getAllUsers()) {
         if (u.getUsername() == username && u.validatePassword(password)) {
             return u;
         }
     }
-    return User(); // Returns empty user on failed auth
+    return User();
 }
 
 // ==========================================
@@ -1511,8 +1144,7 @@ bool FileManager::exportStudentsToCSV(const std::string& destinationFile) {
     if (!csv.is_open()) return false;
 
     csv << "Student ID,Name,Department,Semester,Phone,Address,Bus Number,Pickup Point,Seat Number,Email\n";
-    std::vector<Student> list = getAllStudents();
-    for (const auto& s : list) {
+    for (const auto& s : getAllStudents()) {
         csv << "\"" << s.getId() << "\","
             << "\"" << s.getName() << "\","
             << "\"" << s.getDepartment() << "\","
@@ -1533,8 +1165,7 @@ bool FileManager::exportBusesToCSV(const std::string& destinationFile) {
     if (!csv.is_open()) return false;
 
     csv << "Bus ID,Registration Number,Capacity,Occupied Seats,Available Seats,Assigned Driver,Route ID,Status,Shift Type,Current Location\n";
-    std::vector<Bus> list = getAllBuses();
-    for (const auto& b : list) {
+    for (const auto& b : getAllBuses()) {
         csv << "\"" << b.getBusId() << "\","
             << "\"" << b.getRegNumber() << "\","
             << b.getCapacity() << ","
@@ -1555,8 +1186,7 @@ bool FileManager::exportAttendanceToCSV(const std::string& destinationFile) {
     if (!csv.is_open()) return false;
 
     csv << "Record ID,Date,Bus ID,Student ID,Student Name,Status,Remarks\n";
-    std::vector<Attendance> list = getAllAttendance();
-    for (const auto& a : list) {
+    for (const auto& a : getAllAttendance()) {
         csv << "\"" << a.getRecordId() << "\","
             << "\"" << a.getDate() << "\","
             << "\"" << a.getBusId() << "\","
@@ -1574,8 +1204,7 @@ bool FileManager::exportFeesToCSV(const std::string& destinationFile) {
     if (!csv.is_open()) return false;
 
     csv << "Fee ID,Student ID,Student Name,Total Fee,Paid Amount,Pending Amount,Status,Last Payment Date,Receipt No\n";
-    std::vector<FeeRecord> list = getAllFees();
-    for (const auto& f : list) {
+    for (const auto& f : getAllFees()) {
         csv << "\"" << f.getFeeId() << "\","
             << "\"" << f.getStudentId() << "\","
             << "\"" << f.getStudentName() << "\","
@@ -1595,8 +1224,7 @@ bool FileManager::exportMaintenanceToCSV(const std::string& destinationFile) {
     if (!csv.is_open()) return false;
 
     csv << "Record ID,Bus ID,Service Type,Cost,Service Date,Workshop,Remarks\n";
-    std::vector<MaintenanceRecord> list = getAllMaintenance();
-    for (const auto& m : list) {
+    for (const auto& m : getAllMaintenance()) {
         csv << "\"" << m.getRecordId() << "\","
             << "\"" << m.getBusId() << "\","
             << "\"" << m.getServiceType() << "\","
@@ -1617,8 +1245,7 @@ bool FileManager::exportRouteWiseStudentsToCSV(const std::string& routeId, const
     csv << "Route ID," << r.getRouteId() << ",Route Name," << r.getRouteName() << ",Assigned Bus," << r.getAssignedBus() << "\n";
     csv << "Student ID,Name,Department,Semester,Phone,Pickup Point,Seat Number\n";
 
-    std::vector<Student> all = getAllStudents();
-    for (const auto& s : all) {
+    for (const auto& s : getAllStudents()) {
         if (s.getBusNumber() == r.getAssignedBus()) {
             csv << "\"" << s.getId() << "\","
                 << "\"" << s.getName() << "\","

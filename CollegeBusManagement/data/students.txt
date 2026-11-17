@@ -3,4 +3,13 @@ STU102|Priya Patel|Electronics|3|9876500002|45 Lake View Residency|BUS01|Metro G
 STU103|Amit Verma|Mechanical|7|9876500003|88 Model Town|BUS02|Green Park|1|amit@college.edu
 STU104|Sneha Gupta|Information Tech|4|9876500004|202 Sunrise Apartments|BUS02|Ring Road|2|sneha@college.edu
 STU105|Rohan Mehra|Civil|6|9876500005|14 Palm Avenue|BUS03|Civil Lines|1|rohan@college.edu
-STU106|Ananya Roy|Management|2|9876500006|73 Royal Gardens|None|None|0|ananya@college.edu
+STU106|Ananya Roy|Management|2|9876500006|73 Royal Gardens|BUS01|City Centre|3|ananya@college.edu
+STU107|Kavita Joshi|Biotechnology|4|9876500007|56 Green Valley|BUS02|University Junction|3|kavita@college.edu
+STU108|Aditya Kapoor|Computer Science|6|9876500008|19 Cyber Enclave|BUS01|Tech Hub|4|aditya@college.edu
+STU109|Pooja Hegde|Electrical|5|9876500009|104 Blossom Heights|BUS03|River Bridge|2|pooja@college.edu
+STU110|Manish Tiwari|Mechanical|3|9876500010|89 Industrial Way|BUS05|Industrial Area|1|manish@college.edu
+STU111|Simran Kaur|Civil|7|9876500011|22 Airport Road|BUS05|Highway Flyover|2|simran@college.edu
+STU112|Harsh Vardhan|Information Tech|1|9876500012|404 Lotus Tower|BUS06|Model Town|1|harsh@college.edu
+STU113|Divya Chawla|Computer Science|3|9876500013|17 Heritage Villa|BUS06|Kashmere Gate|2|divya@college.edu
+STU114|Aryan Malhotra|Management|4|9876500014|92 Sector 21|BUS05|West Terminal|3|aryan@college.edu
+STU115|Neha Kulkarni|Electronics|5|9876500015|31 Orchid Gardens|None|None|0|neha@college.edu
