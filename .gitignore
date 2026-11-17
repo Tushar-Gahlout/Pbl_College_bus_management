@@ -42,5 +42,6 @@ CollegeBusManagement/build/CollegeBusManagement
 .DS_Store
 Thumbs.db
 
-# VS Code local state (keep configurations, ignore workspace storage)
+# Outer root VS Code configuration
+/.vscode/
 .vscode/.browse.c_cpp.db*
