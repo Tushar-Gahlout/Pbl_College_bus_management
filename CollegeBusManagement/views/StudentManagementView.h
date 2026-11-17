@@ -26,6 +26,8 @@ private:
     QPushButton* deleteBtn;
     QPushButton* refreshBtn;
     QPushButton* assignBusBtn;
+    QPushButton* bstViewBtn;
+    QPushButton* hashLookupBtn;
 
     void setupUI();
     void showStudentFormDialog(Student* existing = nullptr);
@@ -36,6 +38,8 @@ private slots:
     void handleEdit();
     void handleDelete();
     void handleAssignBus();
+    void handleViewBST();
+    void handleHashLookup();
 
 public slots:
     void refreshData();

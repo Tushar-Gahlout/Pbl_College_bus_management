@@ -40,6 +40,7 @@ private:
 
     QLabel* headerTitleLbl;
     QLabel* userBadgeLbl;
+    QPushButton* undoBtn;
     QStackedWidget* stackedWidget;
 
     // View pointers
@@ -64,6 +65,7 @@ private:
 public slots:
     void navigateToPage(int index);
     void handleLogout();
+    void handleUndo();
 
 public:
     explicit MainWindow(FileManager* fm, const User& user, QWidget* parent = nullptr);

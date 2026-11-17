@@ -25,6 +25,8 @@ private:
     QPushButton* addBtn;
     QPushButton* editBtn;
     QPushButton* deleteBtn;
+    QPushButton* stopsListBtn;
+    QPushButton* networkGraphBtn;
     QPushButton* refreshBtn;
 
     void setupUI();
@@ -35,6 +37,8 @@ private slots:
     void handleAdd();
     void handleEdit();
     void handleDelete();
+    void handleViewStopsList();
+    void handleCheckConnectivity();
 
 public slots:
     void refreshData();

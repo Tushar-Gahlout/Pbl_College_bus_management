@@ -27,19 +27,19 @@ void BusManagementView::setupUI() {
     topLayout->addWidget(title);
     topLayout->addStretch();
 
-    addBtn = new QPushButton("➕ Add New Bus", this);
+    addBtn = new QPushButton("➕ Add Bus", this);
     addBtn->setProperty("class", "primaryButton");
     addBtn->setCursor(Qt::PointingHandCursor);
 
-    editBtn = new QPushButton("✏️ Edit Bus", this);
+    editBtn = new QPushButton("✏️ Edit", this);
     editBtn->setProperty("class", "secondaryButton");
     editBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteBtn = new QPushButton("🗑️ Delete Bus", this);
+    deleteBtn = new QPushButton("🗑️ Delete", this);
     deleteBtn->setProperty("class", "dangerButton");
     deleteBtn->setCursor(Qt::PointingHandCursor);
 
-    viewPassengersBtn = new QPushButton("👥 View Passengers", this);
+    viewPassengersBtn = new QPushButton("👥 Passengers", this);
     viewPassengersBtn->setProperty("class", "secondaryButton");
     viewPassengersBtn->setCursor(Qt::PointingHandCursor);
 

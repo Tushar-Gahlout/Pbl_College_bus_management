@@ -35,7 +35,7 @@ void FeeManagementView::setupUI() {
     recordPaymentBtn->setProperty("class", "primaryButton");
     recordPaymentBtn->setCursor(Qt::PointingHandCursor);
 
-    viewReceiptBtn = new QPushButton("🧾 Generate / View Receipt", this);
+    viewReceiptBtn = new QPushButton("🧾 View Receipt", this);
     viewReceiptBtn->setProperty("class", "secondaryButton");
     viewReceiptBtn->setCursor(Qt::PointingHandCursor);
 

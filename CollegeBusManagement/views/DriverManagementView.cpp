@@ -27,15 +27,15 @@ void DriverManagementView::setupUI() {
     topLayout->addWidget(title);
     topLayout->addStretch();
 
-    addBtn = new QPushButton("➕ Add New Driver", this);
+    addBtn = new QPushButton("➕ Add Driver", this);
     addBtn->setProperty("class", "primaryButton");
     addBtn->setCursor(Qt::PointingHandCursor);
 
-    editBtn = new QPushButton("✏️ Edit Driver", this);
+    editBtn = new QPushButton("✏️ Edit", this);
     editBtn->setProperty("class", "secondaryButton");
     editBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteBtn = new QPushButton("🗑️ Delete Driver", this);
+    deleteBtn = new QPushButton("🗑️ Delete", this);
     deleteBtn->setProperty("class", "dangerButton");
     deleteBtn->setCursor(Qt::PointingHandCursor);
 

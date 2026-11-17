@@ -2,14 +2,18 @@ cmake_minimum_required(VERSION 3.16)
 
 project(CollegeBusManagement
     VERSION 1.0
-    DESCRIPTION "College Bus Management System - OOPS with C++ PBL Project"
-    LANGUAGES CXX
+    DESCRIPTION "College Bus Management System - Pure C Data Structures & C++ OOPS PBL Project"
+    LANGUAGES C CXX
 )
 
-# Enforce C++17 Standard
+# Enforce C++17 and C11 Standards
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # Enable Qt Meta-Object Compiler, Resource Compiler, and User Interface Compiler
 set(CMAKE_AUTOMOC ON)
@@ -47,6 +51,25 @@ set(PROJECT_SOURCES
     services/Exceptions.h
     services/FileManager.h
     services/FileManager.cpp
+    services/DataStructureManager.h
+    services/DataStructureManager.cpp
+
+    # Pure C Data Structures (C11, Structs, Pointers, Manual Memory Management)
+    ds_c/c_common.h
+    ds_c/c_dynamic_array.h
+    ds_c/c_dynamic_array.c
+    ds_c/c_linked_list.h
+    ds_c/c_linked_list.c
+    ds_c/c_circular_queue.h
+    ds_c/c_circular_queue.c
+    ds_c/c_stack.h
+    ds_c/c_stack.c
+    ds_c/c_bst.h
+    ds_c/c_bst.c
+    ds_c/c_hash_table.h
+    ds_c/c_hash_table.c
+    ds_c/c_graph.h
+    ds_c/c_graph.c
 
     # Views (Modern Qt 6 GUI Widgets)
     views/LoginDialog.h
@@ -92,6 +115,7 @@ target_include_directories(CollegeBusManagement PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/models
     ${CMAKE_CURRENT_SOURCE_DIR}/services
+    ${CMAKE_CURRENT_SOURCE_DIR}/ds_c
     ${CMAKE_CURRENT_SOURCE_DIR}/views
 )
 

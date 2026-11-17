@@ -29,11 +29,11 @@ void AttendanceView::setupUI() {
     saveAttendanceBtn->setProperty("class", "primaryButton");
     saveAttendanceBtn->setCursor(Qt::PointingHandCursor);
 
-    markAllPresentBtn = new QPushButton("✅ Mark All Present", this);
+    markAllPresentBtn = new QPushButton("✅ All Present", this);
     markAllPresentBtn->setProperty("class", "successButton");
     markAllPresentBtn->setCursor(Qt::PointingHandCursor);
 
-    markAllAbsentBtn = new QPushButton("❌ Mark All Absent", this);
+    markAllAbsentBtn = new QPushButton("❌ All Absent", this);
     markAllAbsentBtn->setProperty("class", "dangerButton");
     markAllAbsentBtn->setCursor(Qt::PointingHandCursor);
 

@@ -1,4 +1,5 @@
 #include "SeatAllocationView.h"
+#include "../services/DataStructureManager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -28,17 +29,22 @@ void SeatAllocationView::setupUI() {
     topLayout->addWidget(title);
     topLayout->addStretch();
 
-    assignSeatBtn = new QPushButton("💺 Assign Regular Seat", this);
+    assignSeatBtn = new QPushButton("💺 Assign Seat", this);
     assignSeatBtn->setProperty("class", "primaryButton");
     assignSeatBtn->setCursor(Qt::PointingHandCursor);
 
-    quickBookEmptyBtn = new QPushButton("🎟️ Book Empty Seat for Traveler", this);
+    quickBookEmptyBtn = new QPushButton("🎟️ Book Empty Seat", this);
     quickBookEmptyBtn->setProperty("class", "successButton");
     quickBookEmptyBtn->setCursor(Qt::PointingHandCursor);
 
     releaseSeatBtn = new QPushButton("❌ Release Seat", this);
     releaseSeatBtn->setProperty("class", "dangerButton");
     releaseSeatBtn->setCursor(Qt::PointingHandCursor);
+
+    waitingQueueBtn = new QPushButton("⏳ Waiting List (Queue)", this);
+    waitingQueueBtn->setProperty("class", "secondaryButton");
+    waitingQueueBtn->setCursor(Qt::PointingHandCursor);
+    waitingQueueBtn->setToolTip("Manage Student Waiting List via Pure C Circular Queue (FIFO)");
 
     refreshBtn = new QPushButton("🔄 Refresh", this);
     refreshBtn->setProperty("class", "secondaryButton");
@@ -47,6 +53,7 @@ void SeatAllocationView::setupUI() {
     topLayout->addWidget(assignSeatBtn);
     topLayout->addWidget(quickBookEmptyBtn);
     topLayout->addWidget(releaseSeatBtn);
+    topLayout->addWidget(waitingQueueBtn);
     topLayout->addWidget(refreshBtn);
     mainLayout->addLayout(topLayout);
 
@@ -132,6 +139,7 @@ void SeatAllocationView::setupUI() {
     connect(assignSeatBtn, &QPushButton::clicked, this, &SeatAllocationView::handleAssignSeat);
     connect(quickBookEmptyBtn, &QPushButton::clicked, this, [this]() { handleQuickBookEmpty(-1); });
     connect(releaseSeatBtn, &QPushButton::clicked, this, &SeatAllocationView::handleReleaseSeat);
+    connect(waitingQueueBtn, &QPushButton::clicked, this, &SeatAllocationView::handleWaitingQueue);
     connect(refreshBtn, &QPushButton::clicked, this, &SeatAllocationView::refreshData);
 }
 
@@ -317,7 +325,14 @@ void SeatAllocationView::handleAssignSeat() {
     }
 
     if (seatCombo->count() == 0) {
-        QMessageBox::warning(this, "No Seats Available", "All seats on this bus are already allocated.");
+        auto reply = QMessageBox::question(this, "Bus Capacity Full",
+            QString("Bus %1 is currently at full capacity (0 seats available).\n\n"
+                    "Would you like to open the Waiting List (Pure C Circular Queue) to enqueue a student?")
+                    .arg(QString::fromStdString(bId)),
+            QMessageBox::Yes | QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            handleWaitingQueue();
+        }
         return;
     }
 
@@ -355,7 +370,10 @@ void SeatAllocationView::handleAssignSeat() {
             s.setSeatNumber(seatNum);
             fileManager->updateStudent(s);
 
-            QMessageBox::information(&dlg, "Seat Allocated", QString("Seat %1 successfully allocated to %2.")
+            // Record in C Stack for Undo
+            DataStructureManager::getInstance()->pushUndoAction(UNDO_SEAT_ALLOCATED, bId, std::to_string(seatNum), sId);
+
+            QMessageBox::information(&dlg, "Seat Allocated", QString("Seat %1 successfully allocated to %2.\n(Logged to C Undo Stack)")
                 .arg(seatNum).arg(QString::fromStdString(s.getName())));
             dlg.accept();
         } catch (const std::exception& e) {
@@ -396,7 +414,39 @@ void SeatAllocationView::handleReleaseSeat() {
             fileManager->updateStudent(s);
         }
 
-        QMessageBox::information(this, "Seat Released", QString("Seat %1 is now available.").arg(seatNum));
+        auto* dsm = DataStructureManager::getInstance();
+        if (dsm->getWaitingQueueSize() > 0) {
+            std::string qStuId, qStuName, qBusId;
+            if (dsm->peekWaitingStudent(qStuId, qStuName, qBusId) && (qBusId == bId || qBusId.empty())) {
+                auto autoAllocReply = QMessageBox::question(this, "Waiting List (Circular Queue FIFO)",
+                    QString("Seat %1 on Bus %2 has just been released.\n\n"
+                            "The next student waiting in the Pure C Circular Queue is:\n"
+                            "• %1 (%2)\n\n"
+                            "Would you like to allocate this seat to the waiting student now in strict FIFO order?")
+                            .arg(QString::fromStdString(qStuName), QString::fromStdString(qStuId)),
+                    QMessageBox::Yes | QMessageBox::No);
+
+                if (autoAllocReply == QMessageBox::Yes) {
+                    dsm->dequeueWaitingStudent(qStuId, qStuName, qBusId);
+                    fileManager->allocateSeat(bId, seatNum, qStuId, qStuName);
+                    Student waitingStu = fileManager->getStudentById(qStuId);
+                    if (!waitingStu.getId().empty()) {
+                        waitingStu.setBusNumber(bId);
+                        waitingStu.setSeatNumber(seatNum);
+                        fileManager->updateStudent(waitingStu);
+                    }
+                    QMessageBox::information(this, "Queue Auto-Allocated",
+                        QString("Seat %1 successfully allocated to queued student %2 (%3)!\n(Pure C Circular Queue: Dequeued in FIFO order)")
+                            .arg(seatNum).arg(QString::fromStdString(qStuName), QString::fromStdString(qStuId)));
+                } else {
+                    QMessageBox::information(this, "Seat Released", QString("Seat %1 is now available.").arg(seatNum));
+                }
+            } else {
+                QMessageBox::information(this, "Seat Released", QString("Seat %1 is now available.").arg(seatNum));
+            }
+        } else {
+            QMessageBox::information(this, "Seat Released", QString("Seat %1 is now available.").arg(seatNum));
+        }
         refreshData();
     }
 }
@@ -499,4 +549,115 @@ void SeatAllocationView::selectBus(const QString& busId) {
         busSelectorCombo->setCurrentIndex(idx);
     }
 }
+
+void SeatAllocationView::handleWaitingQueue() {
+    auto* dsm = DataStructureManager::getInstance();
+    std::string currentBusId = busSelectorCombo->currentText().toStdString();
+
+    QDialog dlg(this);
+    dlg.setWindowTitle("Pure C Circular Queue - Student Seat Waiting List");
+    dlg.setFixedSize(580, 480);
+
+    auto* layout = new QVBoxLayout(&dlg);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(12);
+
+    auto* infoLbl = new QLabel(
+        "<b>Data Structure Demonstration: Circular Queue (FIFO)</b><br>"
+        "Implements a static array ring buffer with <code>front</code> and <code>rear</code> indices modulo capacity.<br>"
+        "Enqueues at <i>rear</i> (O(1)) and dequeues at <i>front</i> (O(1)) preserving strict arrival order.", &dlg);
+    infoLbl->setStyleSheet("background-color: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 10px; color: #854d0e; font-size: 13px;");
+    layout->addWidget(infoLbl);
+
+    auto* countLbl = new QLabel(QString("Current Waiting Students in Queue: <b>%1</b>").arg(dsm->getWaitingQueueSize()), &dlg);
+    countLbl->setStyleSheet("font-size: 13px; font-weight: bold; color: #0f172a;");
+    layout->addWidget(countLbl);
+
+    // Form to enqueue
+    auto* enqueueBox = new QGroupBox("Enqueue Student to Waiting List", &dlg);
+    auto* enqueueLayout = new QHBoxLayout(enqueueBox);
+
+    auto* studentCombo = new QComboBox(enqueueBox);
+    auto allStudents = fileManager->getAllStudents();
+    for (const auto& s : allStudents) {
+        if (!dsm->isStudentInWaitingQueue(s.getId())) {
+            studentCombo->addItem(QString::fromStdString(s.getId() + " - " + s.getName()), QString::fromStdString(s.getId()));
+        }
+    }
+    enqueueLayout->addWidget(studentCombo, 1);
+
+    auto* enqueueBtn = new QPushButton("➕ Enqueue", enqueueBox);
+    enqueueBtn->setProperty("class", "primaryButton");
+    enqueueLayout->addWidget(enqueueBtn);
+
+    layout->addWidget(enqueueBox);
+
+    // Queue peek info
+    auto* queueStatusBox = new QGroupBox("Front of Queue (Next in line to get seat)", &dlg);
+    auto* statusLayout = new QVBoxLayout(queueStatusBox);
+    auto* peekLbl = new QLabel(queueStatusBox);
+    peekLbl->setStyleSheet("font-size: 13px; color: #334155; padding: 6px;");
+
+    auto updateQueueView = [&]() {
+        int qSize = dsm->getWaitingQueueSize();
+        countLbl->setText(QString("Current Waiting Students in Queue: <b>%1</b>").arg(qSize));
+
+        std::string pId, pName, pBus;
+        if (dsm->peekWaitingStudent(pId, pName, pBus)) {
+            peekLbl->setText(QString("<b>Next Passenger:</b> %1 (%2) [Target Bus: %3]")
+                .arg(QString::fromStdString(pName), QString::fromStdString(pId), QString::fromStdString(pBus)));
+        } else {
+            peekLbl->setText("<i>Queue is currently empty.</i>");
+        }
+    };
+    updateQueueView();
+    statusLayout->addWidget(peekLbl);
+    layout->addWidget(queueStatusBox);
+
+    auto* btnLayout = new QHBoxLayout();
+    auto* dequeueBtn = new QPushButton("Dequeue First Student", &dlg);
+    dequeueBtn->setProperty("class", "dangerButton");
+
+    auto* closeBtn = new QPushButton("Close", &dlg);
+    closeBtn->setProperty("class", "secondaryButton");
+
+    btnLayout->addWidget(dequeueBtn);
+    btnLayout->addStretch();
+    btnLayout->addWidget(closeBtn);
+    layout->addLayout(btnLayout);
+
+    connect(enqueueBtn, &QPushButton::clicked, [&]() {
+        if (studentCombo->count() == 0) {
+            QMessageBox::warning(&dlg, "No Students", "No eligible students available to enqueue.");
+            return;
+        }
+
+        std::string sId = studentCombo->currentData().toString().toStdString();
+        Student s = fileManager->getStudentById(sId);
+        if (dsm->enqueueWaitingStudent(sId, s.getName(), currentBusId)) {
+            QMessageBox::information(&dlg, "Enqueued Successfully",
+                QString("Student %1 (%2) added to Pure C Circular Queue!").arg(QString::fromStdString(s.getName()), QString::fromStdString(sId)));
+            studentCombo->removeItem(studentCombo->currentIndex());
+            updateQueueView();
+        } else {
+            QMessageBox::warning(&dlg, "Queue Full / Error", "Failed to enqueue student (Queue may be full or student is already queued).");
+        }
+    });
+
+    connect(dequeueBtn, &QPushButton::clicked, [&]() {
+        std::string sId, sName, sBus;
+        if (dsm->dequeueWaitingStudent(sId, sName, sBus)) {
+            QMessageBox::information(&dlg, "Dequeued",
+                QString("Dequeued %1 (%2) from front of Pure C Circular Queue (FIFO).").arg(QString::fromStdString(sName), QString::fromStdString(sId)));
+            updateQueueView();
+        } else {
+            QMessageBox::information(&dlg, "Queue Empty", "Circular Queue is already empty.");
+        }
+    });
+
+    connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::accept);
+
+    dlg.exec();
+}
+
 

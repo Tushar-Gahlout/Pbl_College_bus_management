@@ -29,19 +29,19 @@ void MaintenanceView::setupUI() {
     topLayout->addWidget(title);
     topLayout->addStretch();
 
-    addRecordBtn = new QPushButton("➕ Add Service Record", this);
+    addRecordBtn = new QPushButton("➕ Add Record", this);
     addRecordBtn->setProperty("class", "primaryButton");
     addRecordBtn->setCursor(Qt::PointingHandCursor);
 
-    editRecordBtn = new QPushButton("✏️ Edit Record", this);
+    editRecordBtn = new QPushButton("✏️ Edit", this);
     editRecordBtn->setProperty("class", "secondaryButton");
     editRecordBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteRecordBtn = new QPushButton("🗑️ Delete Record", this);
+    deleteRecordBtn = new QPushButton("🗑️ Delete", this);
     deleteRecordBtn->setProperty("class", "dangerButton");
     deleteRecordBtn->setCursor(Qt::PointingHandCursor);
 
-    toggleBusStatusBtn = new QPushButton("🛠️ Toggle Bus Status", this);
+    toggleBusStatusBtn = new QPushButton("🛠️ Bus Status", this);
     toggleBusStatusBtn->setProperty("class", "secondaryButton");
     toggleBusStatusBtn->setCursor(Qt::PointingHandCursor);
 

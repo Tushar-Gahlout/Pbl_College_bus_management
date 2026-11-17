@@ -31,6 +31,7 @@ private:
     QPushButton* assignSeatBtn;
     QPushButton* quickBookEmptyBtn;
     QPushButton* releaseSeatBtn;
+    QPushButton* waitingQueueBtn;
     QPushButton* refreshBtn;
 
     void setupUI();
@@ -41,6 +42,7 @@ private slots:
     void handleAssignSeat();
     void handleQuickBookEmpty(int preselectedSeat = -1);
     void handleReleaseSeat();
+    void handleWaitingQueue();
 
 public slots:
     void refreshData();

@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "LoginDialog.h"
+#include "../services/DataStructureManager.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -12,6 +13,9 @@ MainWindow::MainWindow(FileManager* fm, const User& user, QWidget* parent)
     setWindowTitle("College Bus Management System - Transport ERP");
     resize(1200, 780);
     setMinimumSize(1000, 650);
+
+    // Initialize & Synchronize all 7 Pure C Data Structures from persistent files
+    DataStructureManager::getInstance()->reloadAllFromFiles(fileManager);
 
     setupUI();
     setCurrentUser(user);
@@ -81,6 +85,14 @@ void MainWindow::setupUI() {
     headerTitleLbl->setStyleSheet("font-size: 18px; font-weight: bold; color: #1e1b4b;");
     topHeaderLayout->addWidget(headerTitleLbl);
     topHeaderLayout->addStretch();
+
+    // Pure C Stack: Undo Button for Administrators
+    undoBtn = new QPushButton("↩️ Undo (C Stack)", topHeader);
+    undoBtn->setStyleSheet("QPushButton { background-color: #f8fafc; color: #334155; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; min-height: 34px; } QPushButton:hover { background-color: #e2e8f0; color: #0f172a; }");
+    undoBtn->setToolTip("Pop and revert recent administrative action from Pure C LIFO Stack");
+    undoBtn->setCursor(Qt::PointingHandCursor);
+    connect(undoBtn, &QPushButton::clicked, this, &MainWindow::handleUndo);
+    topHeaderLayout->addWidget(undoBtn);
 
     userBadgeLbl = new QLabel(topHeader);
     userBadgeLbl->setStyleSheet("background-color: #ede9fe; color: #4338ca; padding: 6px 14px; border-radius: 14px; font-weight: 700; font-size: 12px; border: 1px solid #ddd6fe;");
@@ -197,6 +209,10 @@ void MainWindow::configureNavigationForRole() {
         createNavButton("📈 Reports & Export", 9);
         navigateToPage(0);
     }
+
+    if (undoBtn) {
+        undoBtn->setVisible(role == "Admin");
+    }
 }
 
 void MainWindow::setCurrentUser(const User& user) {
@@ -274,3 +290,45 @@ void MainWindow::handleLogout() {
         }
     }
 }
+
+void MainWindow::handleUndo() {
+    auto* dsm = DataStructureManager::getInstance();
+    if (!dsm->hasUndoActions()) {
+        QMessageBox::information(this, "Undo Stack (Pure C)",
+            "The Undo Stack is currently empty.\n(No recent administrative actions recorded in LIFO Stack).");
+        return;
+    }
+
+    CUndoAction action;
+    if (dsm->popUndoAction(action)) {
+        QString actionDesc;
+        try {
+            if (action.action_type == UNDO_STUDENT_ADDED) {
+                fileManager->deleteStudent(action.target_id);
+                actionDesc = QString("Undid Addition of Student %1").arg(action.target_id);
+            } else if (action.action_type == UNDO_STUDENT_DELETED) {
+                if (action.previous_state && strlen(action.previous_state) > 0) {
+                    Student restored = Student::deserialize(action.previous_state);
+                    fileManager->addStudent(restored);
+                    actionDesc = QString("Restored Deleted Student %1 (%2)").arg(action.target_id, QString::fromStdString(restored.getName()));
+                }
+            } else if (action.action_type == UNDO_SEAT_ALLOCATED) {
+                fileManager->releaseSeat(action.target_id, atoi(action.target_name));
+                actionDesc = QString("Undid Seat Allocation on Bus %1 (Seat #%2)").arg(action.target_id, action.target_name);
+            }
+
+            dsm->reloadAllFromFiles(fileManager);
+            studentManagementView->refreshData();
+            seatAllocationView->refreshData();
+            busManagementView->refreshData();
+            adminDashboardView->refreshData();
+
+            QMessageBox::information(this, "Action Reverted",
+                actionDesc + "\n\n[Pure C Data Structure: LIFO Stack Popped Successfully]");
+        } catch (const std::exception& e) {
+            QMessageBox::warning(this, "Undo Notice", QString("Undo operation encountered: %1").arg(e.what()));
+        }
+        c_stack_free_action(&action);
+    }
+}
+

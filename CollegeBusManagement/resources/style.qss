@@ -36,29 +36,6 @@ QWidget {
     font-weight: 500;
 }
 
-/* Base PushButton Styling */
-QPushButton {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: #312e81;
-    background-color: #ffffff;
-    border: 1.5px solid #c7d2fe;
-    border-radius: 6px;
-    padding: 8px 16px;
-    min-height: 22px;
-}
-
-QPushButton:hover {
-    background-color: #eef2ff;
-    border-color: #818cf8;
-    color: #1e1b4b;
-}
-
-QPushButton:pressed {
-    background-color: #e0e7ff;
-}
-
 /* Sidebar Nav Buttons */
 QPushButton.navButton, QPushButton[class="navButton"] {
     background-color: transparent;
@@ -141,13 +118,14 @@ QLabel.metricIcon {
 
 /* Base QPushButton & Action Button Styles with High-Contrast Typography */
 QPushButton {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: #ffffff;
     color: #1e1b4b;
     border: 1.5px solid #cbd5e1;
     border-radius: 6px;
-    padding: 8px 18px;
-    min-height: 38px;
-    font-size: 13px;
+    padding: 6px 14px;
+    min-height: 34px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -165,9 +143,9 @@ QPushButton.primaryButton, QPushButton[class="primaryButton"] {
     color: #ffffff;
     border: 1px solid #4338ca;
     border-radius: 6px;
-    padding: 8px 18px;
-    min-height: 38px;
-    font-size: 13px;
+    padding: 6px 14px;
+    min-height: 34px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -184,9 +162,9 @@ QPushButton.secondaryButton, QPushButton[class="secondaryButton"] {
     color: #312e81;
     border: 1.5px solid #c7d2fe;
     border-radius: 6px;
-    padding: 8px 18px;
-    min-height: 38px;
-    font-size: 13px;
+    padding: 6px 14px;
+    min-height: 34px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -205,9 +183,9 @@ QPushButton.successButton, QPushButton[class="successButton"] {
     color: #ffffff;
     border: 1px solid #047857;
     border-radius: 6px;
-    padding: 8px 18px;
-    min-height: 38px;
-    font-size: 13px;
+    padding: 6px 14px;
+    min-height: 34px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -220,9 +198,9 @@ QPushButton.dangerButton, QPushButton[class="dangerButton"] {
     color: #ffffff;
     border: 1px solid #be123c;
     border-radius: 6px;
-    padding: 8px 18px;
-    min-height: 38px;
-    font-size: 13px;
+    padding: 6px 14px;
+    min-height: 34px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -231,10 +209,10 @@ QPushButton.dangerButton:hover, QPushButton[class="dangerButton"]:hover {
 }
 
 QDialogButtonBox QPushButton {
-    min-width: 90px;
-    min-height: 38px;
-    padding: 8px 18px;
-    font-size: 13px;
+    min-width: 80px;
+    min-height: 34px;
+    padding: 6px 14px;
+    font-size: 12px;
     font-weight: 700;
 }
 
