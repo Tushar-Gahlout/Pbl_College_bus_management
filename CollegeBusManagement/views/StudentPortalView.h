@@ -37,9 +37,13 @@ private:
 
     QTableWidget* myAttendanceTable;
     QPushButton* viewReceiptBtn;
+    QPushButton* viewSeatsBtn;
     QPushButton* refreshBtn;
 
     void setupUI();
+
+signals:
+    void requestViewSeats(const QString& busId);
 
 private slots:
     void handleViewReceipt();

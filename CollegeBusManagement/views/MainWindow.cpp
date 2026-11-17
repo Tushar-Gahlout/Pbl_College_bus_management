@@ -25,10 +25,10 @@ void MainWindow::setupUI() {
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(0);
 
-    // 1. Sidebar Container (Dark Blue)
+    // 1. Sidebar Container (Deep Indigo Theme)
     sidebarWidget = new QWidget(this);
     sidebarWidget->setObjectName("sidebar");
-    sidebarWidget->setStyleSheet("background-color: #0f172a; min-width: 230px; max-width: 230px;");
+    sidebarWidget->setStyleSheet("background-color: #1e1b4b; min-width: 245px; max-width: 245px;");
 
     auto* sidebarLayout = new QVBoxLayout(sidebarWidget);
     sidebarLayout->setContentsMargins(0, 0, 0, 16);
@@ -37,13 +37,13 @@ void MainWindow::setupUI() {
     // Sidebar Header
     auto* sidebarHeader = new QFrame(sidebarWidget);
     sidebarHeader->setObjectName("sidebarHeader");
-    sidebarHeader->setStyleSheet("background-color: #1e293b; padding: 16px; border-bottom: 1px solid #334155;");
+    sidebarHeader->setStyleSheet("background-color: #2e1065; padding: 16px; border-bottom: 1px solid #4338ca;");
     auto* sHeaderLayout = new QVBoxLayout(sidebarHeader);
 
     auto* logoLbl = new QLabel("🚌 CAMPUS TRANSIT", sidebarHeader);
-    logoLbl->setStyleSheet("color: #38bdf8; font-size: 15px; font-weight: bold; letter-spacing: 1px;");
+    logoLbl->setStyleSheet("color: #a5b4fc; font-size: 15px; font-weight: bold; letter-spacing: 1px;");
     auto* subLogoLbl = new QLabel("College Bus Management", sidebarHeader);
-    subLogoLbl->setStyleSheet("color: #94a3b8; font-size: 11px;");
+    subLogoLbl->setStyleSheet("color: #c7d2fe; font-size: 11px;");
 
     sHeaderLayout->addWidget(logoLbl);
     sHeaderLayout->addWidget(subLogoLbl);
@@ -58,7 +58,7 @@ void MainWindow::setupUI() {
 
     // Logout Button at bottom of sidebar
     auto* logoutBtn = new QPushButton("🚪 Log Out", sidebarWidget);
-    logoutBtn->setStyleSheet("background-color: #ef4444; color: white; border-radius: 6px; padding: 10px; font-weight: bold; margin: 8px;");
+    logoutBtn->setStyleSheet("background-color: #e11d48; color: white; border-radius: 6px; padding: 10px; font-weight: bold; margin: 8px 12px; min-height: 38px;");
     logoutBtn->setCursor(Qt::PointingHandCursor);
     connect(logoutBtn, &QPushButton::clicked, this, &MainWindow::handleLogout);
     sidebarLayout->addWidget(logoutBtn);
@@ -74,16 +74,16 @@ void MainWindow::setupUI() {
     // Top Header Bar
     auto* topHeader = new QFrame(rightArea);
     topHeader->setObjectName("topHeader");
-    topHeader->setStyleSheet("background-color: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 10px 24px; min-height: 52px;");
+    topHeader->setStyleSheet("background-color: #ffffff; border-bottom: 1px solid #e0e7ff; padding: 10px 24px; min-height: 52px;");
     auto* topHeaderLayout = new QHBoxLayout(topHeader);
 
     headerTitleLbl = new QLabel("Admin Dashboard", topHeader);
-    headerTitleLbl->setStyleSheet("font-size: 18px; font-weight: bold; color: #0f172a;");
+    headerTitleLbl->setStyleSheet("font-size: 18px; font-weight: bold; color: #1e1b4b;");
     topHeaderLayout->addWidget(headerTitleLbl);
     topHeaderLayout->addStretch();
 
     userBadgeLbl = new QLabel(topHeader);
-    userBadgeLbl->setStyleSheet("background-color: #e0f2fe; color: #0369a1; padding: 6px 14px; border-radius: 14px; font-weight: 600; font-size: 12px;");
+    userBadgeLbl->setStyleSheet("background-color: #ede9fe; color: #4338ca; padding: 6px 14px; border-radius: 14px; font-weight: 700; font-size: 12px; border: 1px solid #ddd6fe;");
     topHeaderLayout->addWidget(userBadgeLbl);
 
     rightLayout->addWidget(topHeader);
@@ -124,6 +124,14 @@ void MainWindow::setupUI() {
 
     // Connect dashboard quick action navigation
     connect(adminDashboardView, &AdminDashboardView::navigateTo, this, &MainWindow::navigateToPage);
+
+    // Connect student portal seat view navigation
+    connect(studentPortalView, &StudentPortalView::requestViewSeats, this, [this](const QString& busId) {
+        if (!busId.isEmpty() && busId != "None") {
+            seatAllocationView->selectBus(busId);
+        }
+        navigateToPage(5);
+    });
 }
 
 QPushButton* MainWindow::createNavButton(const QString& text, int pageIndex, const QString& /*icon*/) {
@@ -131,10 +139,11 @@ QPushButton* MainWindow::createNavButton(const QString& text, int pageIndex, con
     btn->setProperty("class", "navButton");
     btn->setCheckable(true);
     btn->setCursor(Qt::PointingHandCursor);
+    btn->setMinimumHeight(40);
     btn->setStyleSheet(
-        "QPushButton { background: transparent; color: #cbd5e1; border: none; border-radius: 6px; padding: 10px 14px; text-align: left; font-size: 13px; font-weight: 500; margin: 2px 4px; }"
-        "QPushButton:hover { background-color: #1e293b; color: #ffffff; }"
-        "QPushButton:checked { background-color: #2563eb; color: #ffffff; font-weight: 600; }"
+        "QPushButton { background: transparent; color: #cbd5e1; border: none; border-radius: 6px; padding: 10px 14px; text-align: left; font-size: 13px; font-weight: 600; margin: 2px 4px; min-height: 40px; }"
+        "QPushButton:hover { background-color: #312e81; color: #ffffff; }"
+        "QPushButton:checked { background-color: #4f46e5; color: #ffffff; font-weight: 700; }"
     );
 
     connect(btn, &QPushButton::clicked, this, [this, pageIndex]() {
@@ -157,17 +166,24 @@ void MainWindow::configureNavigationForRole() {
     std::string role = currentUser.getRole();
 
     if (role == "Student") {
+        routeManagementView->setReadOnly(true);
+        seatAllocationView->setReadOnly(true);
         createNavButton("🎓 My Student Portal", 10);
+        createNavButton("💺 View Bus Seats", 5);
         createNavButton("🗺️ Live Bus Map", 12);
         createNavButton("🚌 Route & Stops", 3);
         navigateToPage(10);
     } else if (role == "Driver") {
+        routeManagementView->setReadOnly(true);
+        seatAllocationView->setReadOnly(true);
         createNavButton("🧑‍✈️ My Driver Portal", 11);
-        createNavButton("🗺️ GPS Route Map", 12);
         createNavButton("📝 Mark Attendance", 6);
+        createNavButton("🗺️ GPS Route Map", 12);
         createNavButton("🚌 Bus Routes", 3);
         navigateToPage(11);
     } else { // Admin (default)
+        routeManagementView->setReadOnly(false);
+        seatAllocationView->setReadOnly(false);
         createNavButton("📊 Dashboard", 0);
         createNavButton("🎓 Students", 1);
         createNavButton("🚌 Bus Fleet", 2);

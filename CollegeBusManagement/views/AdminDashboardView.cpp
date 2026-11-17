@@ -13,29 +13,34 @@ AdminDashboardView::AdminDashboardView(FileManager* fm, QWidget* parent)
     refreshData();
 }
 
+#include <QScrollArea>
+
 QWidget* AdminDashboardView::createMetricCard(const QString& title, QLabel*& valLabel, const QString& iconText, const QString& accentColor) {
     auto* card = new QFrame(this);
     card->setObjectName("metricCard");
+    card->setMinimumHeight(92);
     card->setStyleSheet(QString(
-        "QFrame#metricCard { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; border-left: 5px solid %1; }"
+        "QFrame#metricCard { background-color: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 12px 16px; border-left: 5px solid %1; }"
         "QFrame#metricCard:hover { border-color: %1; }"
     ).arg(accentColor));
 
     auto* layout = new QVBoxLayout(card);
-    layout->setContentsMargins(10, 10, 10, 10);
-    layout->setSpacing(6);
+    layout->setContentsMargins(12, 10, 12, 10);
+    layout->setSpacing(4);
 
     auto* topLayout = new QHBoxLayout();
     auto* titleLbl = new QLabel(title, card);
     titleLbl->setStyleSheet("font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase;");
     auto* iconLbl = new QLabel(iconText, card);
-    iconLbl->setStyleSheet("font-size: 22px;");
+    iconLbl->setStyleSheet("font-size: 20px;");
     topLayout->addWidget(titleLbl);
     topLayout->addStretch();
     topLayout->addWidget(iconLbl);
 
     valLabel = new QLabel("0", card);
-    valLabel->setStyleSheet("font-size: 26px; font-weight: bold; color: #0f172a;");
+    valLabel->setMinimumHeight(34);
+    valLabel->setStyleSheet("font-size: 26px; font-weight: 800; color: #0f172a; padding: 0px;");
+    valLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     layout->addLayout(topLayout);
     layout->addWidget(valLabel);
@@ -44,19 +49,33 @@ QWidget* AdminDashboardView::createMetricCard(const QString& title, QLabel*& val
 }
 
 void AdminDashboardView::setupUI() {
-    auto* mainLayout = new QVBoxLayout(this);
+    auto* outerLayout = new QVBoxLayout(this);
+    outerLayout->setContentsMargins(0, 0, 0, 0);
+
+    auto* scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setStyleSheet("QScrollArea { background: transparent; border: none; }");
+
+    auto* scrollContent = new QWidget(scrollArea);
+    scrollContent->setStyleSheet("background: transparent;");
+
+    auto* mainLayout = new QVBoxLayout(scrollContent);
     mainLayout->setContentsMargins(24, 24, 24, 24);
-    mainLayout->setSpacing(20);
+    mainLayout->setSpacing(18);
 
     // Header section
     auto* headerLayout = new QHBoxLayout();
-    auto* title = new QLabel("Administrator Overview", this);
-    title->setStyleSheet("font-size: 22px; font-weight: bold; color: #0f172a;");
+    auto* title = new QLabel("Administrator Overview", scrollContent);
+    title->setStyleSheet("font-size: 22px; font-weight: bold; color: #1e1b4b;");
     headerLayout->addWidget(title);
     headerLayout->addStretch();
 
-    auto* refreshBtn = new QPushButton("🔄 Refresh Stats", this);
-    refreshBtn->setStyleSheet("background-color: #2563eb; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold;");
+    auto* refreshBtn = new QPushButton("🔄 Refresh Stats", scrollContent);
+    refreshBtn->setStyleSheet(
+        "QPushButton { background-color: #4f46e5; color: #ffffff; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #4338ca; }"
+    );
     refreshBtn->setCursor(Qt::PointingHandCursor);
     connect(refreshBtn, &QPushButton::clicked, this, &AdminDashboardView::refreshData);
     headerLayout->addWidget(refreshBtn);
@@ -66,63 +85,79 @@ void AdminDashboardView::setupUI() {
     auto* gridLayout = new QGridLayout();
     gridLayout->setSpacing(16);
 
-    gridLayout->addWidget(createMetricCard("Total Students", totalStudentsVal, "🎓", "#3b82f6"), 0, 0);
-    gridLayout->addWidget(createMetricCard("Total Buses", totalBusesVal, "🚌", "#10b981"), 0, 1);
-    gridLayout->addWidget(createMetricCard("Total Drivers", totalDriversVal, "🧑‍✈️", "#f59e0b"), 0, 2);
+    gridLayout->addWidget(createMetricCard("Total Students", totalStudentsVal, "🎓", "#4f46e5"), 0, 0);
+    gridLayout->addWidget(createMetricCard("Total Buses", totalBusesVal, "🚌", "#059669"), 0, 1);
+    gridLayout->addWidget(createMetricCard("Total Drivers", totalDriversVal, "🧑‍✈️", "#d97706"), 0, 2);
 
-    gridLayout->addWidget(createMetricCard("Active Routes", totalRoutesVal, "🗺️", "#8b5cf6"), 1, 0);
-    gridLayout->addWidget(createMetricCard("Available Seats", availableSeatsVal, "💺", "#06b6d4"), 1, 1);
-    gridLayout->addWidget(createMetricCard("Pending Fees (₹)", pendingFeesVal, "💳", "#ef4444"), 1, 2);
+    gridLayout->addWidget(createMetricCard("Active Routes", totalRoutesVal, "🗺️", "#7c3aed"), 1, 0);
+    gridLayout->addWidget(createMetricCard("Available Seats", availableSeatsVal, "💺", "#0284c7"), 1, 1);
+    gridLayout->addWidget(createMetricCard("Pending Fees (₹)", pendingFeesVal, "💳", "#e11d48"), 1, 2);
 
     mainLayout->addLayout(gridLayout);
 
-    // Quick Action Bar
-    auto* quickBox = new QFrame(this);
-    quickBox->setStyleSheet("background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px;");
+    // Quick Action Bar - 2 Row Grid for maximum clarity and zero truncation
+    auto* quickBox = new QFrame(scrollContent);
+    quickBox->setStyleSheet("background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px;");
     auto* quickLayout = new QVBoxLayout(quickBox);
     auto* quickTitle = new QLabel("Quick Management Actions", quickBox);
-    quickTitle->setStyleSheet("font-size: 14px; font-weight: bold; color: #1e293b;");
+    quickTitle->setStyleSheet("font-size: 14px; font-weight: bold; color: #1e1b4b; margin-bottom: 4px;");
     quickLayout->addWidget(quickTitle);
 
-    auto* btnRow = new QHBoxLayout();
-    btnRow->setSpacing(12);
+    auto* btnGrid = new QGridLayout();
+    btnGrid->setSpacing(10);
 
     auto makeActionBtn = [&](const QString& text, int page) {
         auto* btn = new QPushButton(text, quickBox);
-        btn->setStyleSheet("background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 14px; font-weight: 600;");
+        btn->setStyleSheet(
+            "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; border-radius: 6px; padding: 8px 14px; font-weight: 700; font-size: 13px; min-height: 38px; text-align: center; }"
+            "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; color: #1e1b4b; }"
+        );
         btn->setCursor(Qt::PointingHandCursor);
         connect(btn, &QPushButton::clicked, this, [this, page]() { emit navigateTo(page); });
         return btn;
     };
 
-    btnRow->addWidget(makeActionBtn("👥 Manage Students", 1));
-    btnRow->addWidget(makeActionBtn("🚌 Manage Buses", 2));
-    btnRow->addWidget(makeActionBtn("🗺️ Live Map & GPS", 12));
-    btnRow->addWidget(makeActionBtn("💺 Seat Allocation", 5));
-    btnRow->addWidget(makeActionBtn("🗺️ View Routes", 3));
-    btnRow->addWidget(makeActionBtn("📝 Mark Attendance", 6));
-    btnRow->addWidget(makeActionBtn("💰 Fee Collection", 7));
-    btnRow->addWidget(makeActionBtn("📊 Export Reports", 9));
-    btnRow->addStretch();
+    btnGrid->addWidget(makeActionBtn("👥 Manage Students", 1), 0, 0);
+    btnGrid->addWidget(makeActionBtn("🚌 Manage Buses", 2), 0, 1);
+    btnGrid->addWidget(makeActionBtn("🗺️ Live Map & GPS", 12), 0, 2);
+    btnGrid->addWidget(makeActionBtn("💺 Seat Allocation", 5), 0, 3);
+    btnGrid->addWidget(makeActionBtn("🗺️ View Routes", 3), 1, 0);
+    btnGrid->addWidget(makeActionBtn("📝 Mark Attendance", 6), 1, 1);
+    btnGrid->addWidget(makeActionBtn("💳 Fee Management", 7), 1, 2);
+    btnGrid->addWidget(makeActionBtn("📈 Export Reports", 9), 1, 3);
 
-    quickLayout->addLayout(btnRow);
+    quickLayout->addLayout(btnGrid);
     mainLayout->addWidget(quickBox);
 
     // Bus Status Summary Table
-    auto* tableHeaderLbl = new QLabel("Fleet Status & Real-Time Tracking Overview", this);
-    tableHeaderLbl->setStyleSheet("font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 10px;");
+    auto* tableHeaderLbl = new QLabel("Fleet Status & Real-Time Tracking Overview", scrollContent);
+    tableHeaderLbl->setStyleSheet("font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 6px;");
     mainLayout->addWidget(tableHeaderLbl);
 
-    busSummaryTable = new QTableWidget(this);
+    busSummaryTable = new QTableWidget(scrollContent);
     busSummaryTable->setColumnCount(9);
     busSummaryTable->setHorizontalHeaderLabels({
         "Bus ID", "Registration No", "Capacity", "Occupied", "Empty Seats", "Shift Schedule", "Driver", "Status", "Live Location"
     });
-    busSummaryTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Stretch);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(7, QHeaderView::ResizeToContents);
+    busSummaryTable->horizontalHeader()->setSectionResizeMode(8, QHeaderView::Stretch);
+
     busSummaryTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     busSummaryTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     busSummaryTable->verticalHeader()->setVisible(false);
+    busSummaryTable->setMinimumHeight(220);
     mainLayout->addWidget(busSummaryTable);
+
+    scrollArea->setWidget(scrollContent);
+    outerLayout->addWidget(scrollArea);
 }
 
 void AdminDashboardView::refreshData() {

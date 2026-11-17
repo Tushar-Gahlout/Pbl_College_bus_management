@@ -33,14 +33,19 @@ void StudentPortalView::setupUI() {
     headerLayout->addWidget(studentNameLbl);
     headerLayout->addStretch();
 
+    viewSeatsBtn = new QPushButton("💺 View Bus Seating Layout", this);
+    viewSeatsBtn->setProperty("class", "primaryButton");
+    viewSeatsBtn->setCursor(Qt::PointingHandCursor);
+
     viewReceiptBtn = new QPushButton("🧾 View Payment Receipt", this);
-    viewReceiptBtn->setProperty("class", "primaryButton");
+    viewReceiptBtn->setProperty("class", "secondaryButton");
     viewReceiptBtn->setCursor(Qt::PointingHandCursor);
 
     refreshBtn = new QPushButton("🔄 Refresh", this);
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
+    headerLayout->addWidget(viewSeatsBtn);
     headerLayout->addWidget(viewReceiptBtn);
     headerLayout->addWidget(refreshBtn);
     mainLayout->addLayout(headerLayout);
@@ -115,6 +120,12 @@ void StudentPortalView::setupUI() {
     myAttendanceTable->verticalHeader()->setVisible(false);
     mainLayout->addWidget(myAttendanceTable);
 
+    connect(viewSeatsBtn, &QPushButton::clicked, this, [this]() {
+        std::string sId = currentUser.getAssociatedId();
+        if (sId.empty()) sId = "STU101";
+        Student s = fileManager->getStudentById(sId);
+        emit requestViewSeats(QString::fromStdString(s.getBusNumber()));
+    });
     connect(viewReceiptBtn, &QPushButton::clicked, this, &StudentPortalView::handleViewReceipt);
     connect(refreshBtn, &QPushButton::clicked, this, &StudentPortalView::refreshData);
 }

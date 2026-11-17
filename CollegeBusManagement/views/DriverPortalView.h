@@ -30,15 +30,9 @@ private:
     QLabel* stopsLbl;
 
     QTableWidget* passengerTable;
-    QPushButton* saveAttendanceBtn;
-    QPushButton* markAllPresentBtn;
     QPushButton* refreshBtn;
 
     void setupUI();
-
-private slots:
-    void handleSaveAttendance();
-    void handleMarkAllPresent();
 
 public slots:
     void refreshData();

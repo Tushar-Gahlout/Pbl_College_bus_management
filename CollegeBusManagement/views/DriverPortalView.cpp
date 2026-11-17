@@ -23,7 +23,7 @@ void DriverPortalView::setCurrentUser(const User& user) {
 void DriverPortalView::setupUI() {
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(24, 24, 24, 24);
-    mainLayout->setSpacing(20);
+    mainLayout->setSpacing(18);
 
     // Welcome Header
     auto* headerLayout = new QHBoxLayout();
@@ -32,21 +32,11 @@ void DriverPortalView::setupUI() {
     headerLayout->addWidget(driverNameLbl);
     headerLayout->addStretch();
 
-    saveAttendanceBtn = new QPushButton("💾 Save Passenger Attendance", this);
-    saveAttendanceBtn->setProperty("class", "primaryButton");
-    saveAttendanceBtn->setCursor(Qt::PointingHandCursor);
-
-    markAllPresentBtn = new QPushButton("✅ Mark All Present", this);
-    markAllPresentBtn->setProperty("class", "successButton");
-    markAllPresentBtn->setCursor(Qt::PointingHandCursor);
-
     refreshBtn = new QPushButton("🔄 Refresh", this);
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
-
-    headerLayout->addWidget(saveAttendanceBtn);
-    headerLayout->addWidget(markAllPresentBtn);
     headerLayout->addWidget(refreshBtn);
+
     mainLayout->addLayout(headerLayout);
 
     // Profile & Bus Info Row
@@ -86,21 +76,27 @@ void DriverPortalView::setupUI() {
 
     mainLayout->addLayout(cardsLayout);
 
-    // Bottom: Passenger list table for attendance
-    auto* passTitle = new QLabel("Today's Assigned Passengers (Student Attendance)", this);
-    passTitle->setStyleSheet("font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 10px;");
+    // Bottom: Assigned Passenger List Manifest
+    auto* passTitle = new QLabel("📋 Assigned Passenger Roster & Contact Information", this);
+    passTitle->setStyleSheet("font-size: 16px; font-weight: bold; color: #0f172a; margin-top: 6px;");
     mainLayout->addWidget(passTitle);
 
     passengerTable = new QTableWidget(this);
     passengerTable->setColumnCount(6);
-    passengerTable->setHorizontalHeaderLabels({"Student ID", "Name", "Department", "Pickup Stop", "Seat No", "Attendance"});
-    passengerTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    passengerTable->setHorizontalHeaderLabels({"Student ID", "Student Name", "Department", "Pickup Stop", "Seat No", "Contact Phone"});
+    passengerTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+    passengerTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    passengerTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    passengerTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    passengerTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    passengerTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    passengerTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch);
+
     passengerTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    passengerTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     passengerTable->verticalHeader()->setVisible(false);
     mainLayout->addWidget(passengerTable);
 
-    connect(saveAttendanceBtn, &QPushButton::clicked, this, &DriverPortalView::handleSaveAttendance);
-    connect(markAllPresentBtn, &QPushButton::clicked, this, &DriverPortalView::handleMarkAllPresent);
     connect(refreshBtn, &QPushButton::clicked, this, &DriverPortalView::refreshData);
 }
 
@@ -139,10 +135,8 @@ void DriverPortalView::refreshData() {
     timingLbl->setText("Shift Timing: Pickup " + QString::fromStdString(r.getPickupTime()) + " | Drop " + QString::fromStdString(r.getDropTime()));
     stopsLbl->setText("Route Stops: " + QString::fromStdString(r.getStopsAsString()));
 
-    // Load today's students
-    std::string today = QDate::currentDate().toString("yyyy-MM-dd").toStdString();
+    // Load assigned students
     auto allStudents = fileManager->getAllStudents();
-    auto todayAttendance = fileManager->getAttendanceByBusAndDate(bId, today);
 
     passengerTable->setRowCount(0);
     int row = 0;
@@ -162,65 +156,15 @@ void DriverPortalView::refreshData() {
             passengerTable->setItem(row, 3, new QTableWidgetItem(QString::fromStdString(s.getPickupPoint())));
             passengerTable->item(row, 3)->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 
-            passengerTable->setItem(row, 4, new QTableWidgetItem(QString::number(s.getSeatNumber())));
+            QString seatStr = s.getSeatNumber() > 0 ? QString::number(s.getSeatNumber()) : "Unassigned";
+            passengerTable->setItem(row, 4, new QTableWidgetItem(seatStr));
             passengerTable->item(row, 4)->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 
-            std::string status = "Present";
-            for (const auto& att : todayAttendance) {
-                if (att.getStudentId() == s.getId()) {
-                    status = att.getStatus();
-                    break;
-                }
-            }
-
-            auto* statusCombo = new QComboBox();
-            statusCombo->addItem("Present");
-            statusCombo->addItem("Absent");
-            statusCombo->setCurrentText(QString::fromStdString(status));
-            passengerTable->setCellWidget(row, 5, statusCombo);
+            passengerTable->setItem(row, 5, new QTableWidgetItem(QString::fromStdString(s.getPhone())));
+            passengerTable->item(row, 5)->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 
             row++;
         }
     }
 }
 
-void DriverPortalView::handleMarkAllPresent() {
-    for (int r = 0; r < passengerTable->rowCount(); ++r) {
-        auto* combo = qobject_cast<QComboBox*>(passengerTable->cellWidget(r, 5));
-        if (combo) combo->setCurrentText("Present");
-    }
-}
-
-void DriverPortalView::handleSaveAttendance() {
-    if (passengerTable->rowCount() == 0) {
-        QMessageBox::information(this, "Empty List", "No passengers assigned to your bus.");
-        return;
-    }
-
-    std::string dId = currentUser.getAssociatedId();
-    if (dId.empty()) dId = "DRV01";
-    Driver d = fileManager->getDriverById(dId);
-    std::string bId = d.getAssignedBus();
-    std::string today = QDate::currentDate().toString("yyyy-MM-dd").toStdString();
-
-    std::vector<Attendance> records;
-    for (int r = 0; r < passengerTable->rowCount(); ++r) {
-        std::string sId = passengerTable->item(r, 0)->text().toStdString();
-        std::string sName = passengerTable->item(r, 1)->text().toStdString();
-
-        auto* statusCombo = qobject_cast<QComboBox*>(passengerTable->cellWidget(r, 5));
-        std::string status = statusCombo ? statusCombo->currentText().toStdString() : "Present";
-
-        std::string recId = "ATT-" + today + "-" + sId;
-        records.emplace_back(recId, today, bId, sId, sName, status, "Driver marked");
-    }
-
-    try {
-        fileManager->markAttendance(records);
-        QMessageBox::information(this, "Attendance Saved",
-            QString("Successfully marked passenger attendance for %1 (%2 students).")
-                .arg(QString::fromStdString(today)).arg(records.size()));
-    } catch (const std::exception& e) {
-        QMessageBox::critical(this, "Save Failed", QString::fromStdString(e.what()));
-    }
-}
