@@ -34,7 +34,6 @@ void SeatAllocationView::setupUI() {
 
     quickBookEmptyBtn = new QPushButton("🎟️ Book Empty Seat for Traveler", this);
     quickBookEmptyBtn->setProperty("class", "successButton");
-    quickBookEmptyBtn->setStyleSheet("background-color: #16a34a; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold;");
     quickBookEmptyBtn->setCursor(Qt::PointingHandCursor);
 
     releaseSeatBtn = new QPushButton("❌ Release Seat", this);
@@ -53,58 +52,47 @@ void SeatAllocationView::setupUI() {
 
     // Bus Selector and Statistics Bar
     auto* statsBar = new QFrame(this);
-    statsBar->setStyleSheet("background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;");
+    statsBar->setStyleSheet("background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px;");
     auto* barLayout = new QHBoxLayout(statsBar);
 
     auto* busLbl = new QLabel("Select Bus:", statsBar);
-    busLbl->setStyleSheet("font-weight: bold;");
+    busLbl->setStyleSheet("font-weight: bold; color: #0f172a;");
     barLayout->addWidget(busLbl);
 
     busSelectorCombo = new QComboBox(statsBar);
     busSelectorCombo->setMinimumWidth(160);
+    busSelectorCombo->setStyleSheet("font-size: 13px; font-weight: 600; padding: 6px 10px;");
     barLayout->addWidget(busSelectorCombo);
 
     barLayout->addSpacing(20);
 
     shiftInfoLbl = new QLabel("Shift: Full Day", statsBar);
-    shiftInfoLbl->setStyleSheet("background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 10px; font-weight: bold; font-size: 11px;");
+    shiftInfoLbl->setStyleSheet("background-color: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
     barLayout->addWidget(shiftInfoLbl);
 
     barLayout->addSpacing(20);
     busCapacityLbl = new QLabel("Capacity: 0", statsBar);
-    busCapacityLbl->setStyleSheet("font-weight: 600; color: #475569;");
+    busCapacityLbl->setStyleSheet("font-weight: 700; color: #334155; font-size: 13px;");
     barLayout->addWidget(busCapacityLbl);
 
     occupiedCountLbl = new QLabel("Occupied: 0", statsBar);
-    occupiedCountLbl->setStyleSheet("font-weight: 600; color: #dc2626;");
+    occupiedCountLbl->setStyleSheet("font-weight: 700; color: #dc2626; font-size: 13px;");
     barLayout->addWidget(occupiedCountLbl);
 
     availableCountLbl = new QLabel("Available: 0", statsBar);
-    availableCountLbl->setStyleSheet("font-weight: 600; color: #16a34a;");
+    availableCountLbl->setStyleSheet("font-weight: 700; color: #16a34a; font-size: 13px;");
     barLayout->addWidget(availableCountLbl);
 
     barLayout->addStretch();
     mainLayout->addWidget(statsBar);
 
-    // Unassigned / Empty Seats Live Banner
-    auto* bannerFrame = new QFrame(this);
-    bannerFrame->setStyleSheet("background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 14px;");
-    auto* bannerLayout = new QVBoxLayout(bannerFrame);
-    bannerLayout->setContentsMargins(6, 4, 6, 4);
-
-    emptySeatsListLbl = new QLabel("🟢 Unassigned Empty Seats on this Bus: (Loading...)", bannerFrame);
-    emptySeatsListLbl->setWordWrap(true);
-    emptySeatsListLbl->setStyleSheet("color: #065f46; font-weight: 600; font-size: 13px;");
-    bannerLayout->addWidget(emptySeatsListLbl);
-
-    mainLayout->addWidget(bannerFrame);
-
     // Split Content: Visual Grid on Left, Allocation Table on Right
     auto* contentLayout = new QHBoxLayout();
+    contentLayout->setSpacing(16);
 
     // Visual Grid Container
     auto* gridBox = new QGroupBox("Bus Seating Layout (Visual 2x2)", this);
-    gridBox->setStyleSheet("QGroupBox { font-weight: bold; }");
+    gridBox->setStyleSheet("QGroupBox { font-size: 14px; font-weight: bold; color: #0f172a; }");
     auto* gridBoxLayout = new QVBoxLayout(gridBox);
 
     auto* scroll = new QScrollArea(gridBox);
@@ -113,7 +101,7 @@ void SeatAllocationView::setupUI() {
 
     seatGridContainer = new QWidget();
     seatGridLayout = new QGridLayout(seatGridContainer);
-    seatGridLayout->setSpacing(8);
+    seatGridLayout->setSpacing(10);
     scroll->setWidget(seatGridContainer);
     gridBoxLayout->addWidget(scroll);
 
@@ -121,13 +109,14 @@ void SeatAllocationView::setupUI() {
 
     // Allocation Table on Right
     auto* tableBox = new QGroupBox("Allocated Passengers List", this);
-    tableBox->setStyleSheet("QGroupBox { font-weight: bold; }");
+    tableBox->setStyleSheet("QGroupBox { font-size: 14px; font-weight: bold; color: #0f172a; }");
     auto* tableBoxLayout = new QVBoxLayout(tableBox);
 
     seatTable = new QTableWidget(tableBox);
     seatTable->setColumnCount(4);
     seatTable->setHorizontalHeaderLabels({"Seat No", "Student ID", "Student Name", "Allocation Date"});
     seatTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    seatTable->verticalHeader()->setDefaultSectionSize(36);
     seatTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     seatTable->setSelectionMode(QAbstractItemView::SingleSelection);
     seatTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -179,27 +168,14 @@ void SeatAllocationView::handleBusChanged(int /*index*/) {
 
     shiftInfoLbl->setText("Shift: " + QString::fromStdString(b.getShiftType()));
     if (b.getShiftType().find("Half") != std::string::npos) {
-        shiftInfoLbl->setStyleSheet("background-color: #ffedd5; color: #c2410c; padding: 4px 10px; border-radius: 10px; font-weight: bold; font-size: 11px;");
+        shiftInfoLbl->setStyleSheet("background-color: #ffedd5; color: #c2410c; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
     } else {
-        shiftInfoLbl->setStyleSheet("background-color: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 10px; font-weight: bold; font-size: 11px;");
+        shiftInfoLbl->setStyleSheet("background-color: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
     }
 
     busCapacityLbl->setText(QString("Capacity: %1").arg(b.getCapacity()));
     occupiedCountLbl->setText(QString("Occupied: %1").arg(seats.size()));
     availableCountLbl->setText(QString("Available: %1").arg(b.getCapacity() - static_cast<int>(seats.size())));
-
-    // Update Live Empty Seats Banner
-    auto emptySeats = fileManager->getEmptySeatsForBus(bId);
-    if (emptySeats.empty()) {
-        emptySeatsListLbl->setText("🔴 This bus is FULL. No empty seats currently available.");
-        emptySeatsListLbl->setStyleSheet("color: #b91c1c; font-weight: 600; font-size: 13px;");
-    } else {
-        QStringList sl;
-        for (int sn : emptySeats) sl << ("#" + QString::number(sn));
-        emptySeatsListLbl->setText(QString("🟢 %1 Empty / Unassigned Seats (Available for other travelers/students to sit): %2")
-            .arg(emptySeats.size()).arg(sl.join(", ")));
-        emptySeatsListLbl->setStyleSheet("color: #065f46; font-weight: 600; font-size: 13px;");
-    }
 
     // Render Table
     seatTable->setRowCount(0);
@@ -233,7 +209,7 @@ void SeatAllocationView::renderSeatGrid(const std::string& busId) {
     // Front Driver indicator
     auto* driverRow = new QLabel("🚌 [ Front / Driver Cabin ]", seatGridContainer);
     driverRow->setAlignment(Qt::AlignCenter);
-    driverRow->setStyleSheet("background-color: #334155; color: white; font-weight: bold; border-radius: 4px; padding: 6px;");
+    driverRow->setStyleSheet("background-color: #1e293b; color: #ffffff; font-size: 13px; font-weight: bold; border-radius: 6px; padding: 8px;");
     seatGridLayout->addWidget(driverRow, 0, 0, 1, 5);
 
     int row = 1;
@@ -258,13 +234,21 @@ void SeatAllocationView::renderSeatGrid(const std::string& busId) {
             }
 
             auto* btn = new QPushButton(QString::number(currentSeat), seatGridContainer);
-            btn->setFixedSize(48, 44);
+            btn->setFixedSize(54, 46);
 
             if (isAllocated) {
-                btn->setStyleSheet("background-color: #ef4444; color: white; font-weight: bold; border-radius: 6px;");
+                btn->setStyleSheet(
+                    "QPushButton { background-color: #dc2626; color: #ffffff; font-size: 14px; font-weight: 700; "
+                    "border-radius: 8px; border: 1.5px solid #b91c1c; }"
+                    "QPushButton:hover { background-color: #b91c1c; }"
+                );
                 btn->setToolTip(QString("Seat %1: OCCUPIED by %2 (%3)").arg(currentSeat).arg(QString::fromStdString(occupantName)).arg(QString::fromStdString(occupantId)));
             } else {
-                btn->setStyleSheet("background-color: #10b981; color: white; font-weight: bold; border-radius: 6px;");
+                btn->setStyleSheet(
+                    "QPushButton { background-color: #16a34a; color: #ffffff; font-size: 14px; font-weight: 700; "
+                    "border-radius: 8px; border: 1.5px solid #15803d; }"
+                    "QPushButton:hover { background-color: #15803d; }"
+                );
                 btn->setToolTip(QString("Seat %1: EMPTY & UNASSIGNED\nClick here to book this seat for another traveler!").arg(currentSeat));
                 btn->setCursor(Qt::PointingHandCursor);
                 connect(btn, &QPushButton::clicked, this, [this, currentSeat]() {
@@ -278,7 +262,7 @@ void SeatAllocationView::renderSeatGrid(const std::string& busId) {
         // Add Aisle spacer label in column 2
         auto* aisleLbl = new QLabel(" | ", seatGridContainer);
         aisleLbl->setAlignment(Qt::AlignCenter);
-        aisleLbl->setStyleSheet("color: #cbd5e1;");
+        aisleLbl->setStyleSheet("color: #94a3b8; font-weight: bold;");
         seatGridLayout->addWidget(aisleLbl, row, 2);
 
         row++;
@@ -297,7 +281,7 @@ void SeatAllocationView::handleAssignSeat() {
 
     QDialog dlg(this);
     dlg.setWindowTitle(QString("Assign Seat on Bus %1").arg(QString::fromStdString(bId)));
-    dlg.setFixedSize(420, 260);
+    dlg.setFixedSize(440, 280);
 
     auto* layout = new QVBoxLayout(&dlg);
     layout->setSpacing(14);
@@ -326,20 +310,29 @@ void SeatAllocationView::handleAssignSeat() {
     auto* studentCombo = new QComboBox(&dlg);
     auto allStudents = fileManager->getAllStudents();
     for (const auto& s : allStudents) {
-        // Allow students assigned to this bus or unassigned
         if (s.getBusNumber() == bId || s.getBusNumber() == "None" || s.getSeatNumber() == 0) {
             QString label = QString::fromStdString(s.getId()) + " - " + QString::fromStdString(s.getName());
             studentCombo->addItem(label, QString::fromStdString(s.getId()));
         }
     }
 
-    formLayout->addRow("Bus ID:", new QLabel(QString::fromStdString(bId), &dlg));
-    formLayout->addRow("Select Seat *:", seatCombo);
-    formLayout->addRow("Select Student *:", studentCombo);
+    if (seatCombo->count() == 0) {
+        QMessageBox::warning(this, "No Seats Available", "All seats on this bus are already allocated.");
+        return;
+    }
+
+    if (studentCombo->count() == 0) {
+        QMessageBox::warning(this, "No Students", "No unassigned students available to allocate.");
+        return;
+    }
+
+    formLayout->addRow("Bus ID:", new QLabel(QString::fromStdString(bId) + " (" + QString::fromStdString(b.getShiftType()) + ")", &dlg));
+    formLayout->addRow("Available Seat:", seatCombo);
+    formLayout->addRow("Student:", studentCombo);
     layout->addLayout(formLayout);
 
     auto* btnLayout = new QHBoxLayout();
-    auto* saveBtn = new QPushButton("Confirm Allocation", &dlg);
+    auto* saveBtn = new QPushButton("Allocate Seat", &dlg);
     saveBtn->setProperty("class", "primaryButton");
     auto* cancelBtn = new QPushButton("Cancel", &dlg);
     cancelBtn->setProperty("class", "secondaryButton");
@@ -351,25 +344,19 @@ void SeatAllocationView::handleAssignSeat() {
 
     connect(cancelBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
     connect(saveBtn, &QPushButton::clicked, [&]() {
-        if (seatCombo->count() == 0 || studentCombo->count() == 0) {
-            QMessageBox::warning(&dlg, "Selection Error", "No available seat or student to assign.");
-            return;
-        }
-
         int seatNum = seatCombo->currentData().toInt();
         std::string sId = studentCombo->currentData().toString().toStdString();
         Student s = fileManager->getStudentById(sId);
 
         try {
-            // Allocate seat in seats.txt
             fileManager->allocateSeat(bId, seatNum, sId, s.getName());
 
-            // Update student's bus and seat number
             s.setBusNumber(bId);
             s.setSeatNumber(seatNum);
             fileManager->updateStudent(s);
 
-            QMessageBox::information(&dlg, "Success", QString("Seat %1 allocated successfully to %2!").arg(seatNum).arg(QString::fromStdString(s.getName())));
+            QMessageBox::information(&dlg, "Seat Allocated", QString("Seat %1 successfully allocated to %2.")
+                .arg(seatNum).arg(QString::fromStdString(s.getName())));
             dlg.accept();
         } catch (const std::exception& e) {
             QMessageBox::critical(&dlg, "Allocation Error", QString::fromStdString(e.what()));
@@ -382,20 +369,22 @@ void SeatAllocationView::handleAssignSeat() {
 }
 
 void SeatAllocationView::handleReleaseSeat() {
-    int row = seatTable->currentRow();
-    if (row < 0) {
-        QMessageBox::information(this, "Select Seat", "Please select a seat from the table to release.");
+    int selectedRow = seatTable->currentRow();
+    if (selectedRow < 0) {
+        QMessageBox::warning(this, "Selection Required", "Please select a seat from the allocated passengers list to release.");
         return;
     }
 
-    QString seatText = seatTable->item(row, 0)->text();
-    int seatNum = seatText.replace("Seat ", "").toInt();
-    QString sId = seatTable->item(row, 1)->text();
-    QString sName = seatTable->item(row, 2)->text();
+    QString seatStr = seatTable->item(selectedRow, 0)->text();
+    QString sId = seatTable->item(selectedRow, 1)->text();
+    QString sName = seatTable->item(selectedRow, 2)->text();
+
+    int seatNum = seatStr.replace("Seat ", "").trimmed().toInt();
     std::string bId = busSelectorCombo->currentText().toStdString();
 
     auto reply = QMessageBox::question(this, "Confirm Seat Release",
-        QString("Are you sure you want to release Seat %1 assigned to %2 (%3)?").arg(seatNum).arg(sName, sId),
+        QString("Are you sure you want to release Seat %1 currently allocated to %2 (%3)?")
+            .arg(seatNum).arg(sName, sId),
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
@@ -425,7 +414,7 @@ void SeatAllocationView::handleQuickBookEmpty(int preselectedSeat) {
 
     QDialog dlg(this);
     dlg.setWindowTitle(QString("Book Empty Seat - Bus %1 (%2)").arg(QString::fromStdString(bId), QString::fromStdString(b.getShiftType())));
-    dlg.setFixedSize(460, 320);
+    dlg.setFixedSize(480, 320);
 
     auto* layout = new QVBoxLayout(&dlg);
     layout->setContentsMargins(20, 20, 20, 20);
@@ -498,3 +487,16 @@ void SeatAllocationView::handleQuickBookEmpty(int preselectedSeat) {
         refreshData();
     }
 }
+
+void SeatAllocationView::setReadOnly(bool readOnly) {
+    assignSeatBtn->setVisible(!readOnly);
+    releaseSeatBtn->setVisible(!readOnly);
+}
+
+void SeatAllocationView::selectBus(const QString& busId) {
+    int idx = busSelectorCombo->findText(busId);
+    if (idx != -1) {
+        busSelectorCombo->setCurrentIndex(idx);
+    }
+}
+

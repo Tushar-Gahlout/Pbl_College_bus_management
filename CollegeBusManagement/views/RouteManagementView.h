@@ -5,6 +5,7 @@
 #include <QTableWidget>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QLabel>
 #include "../services/FileManager.h"
 
 /**
@@ -15,7 +16,9 @@ class RouteManagementView : public QWidget {
 
 private:
     FileManager* fileManager;
+    bool isReadOnly;
 
+    QLabel* titleLbl;
     QLineEdit* searchEdit;
     QTableWidget* routeTable;
 
@@ -39,6 +42,9 @@ public slots:
 public:
     explicit RouteManagementView(FileManager* fm, QWidget* parent = nullptr);
     ~RouteManagementView() override = default;
+
+    // Controls whether user can add/edit/delete routes or only view them
+    void setReadOnly(bool readOnly);
 };
 
 #endif // ROUTEMANAGEMENTVIEW_H

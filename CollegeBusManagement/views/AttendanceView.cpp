@@ -54,40 +54,54 @@ void AttendanceView::setupUI() {
 
     // Filter Bar: Bus selector + Date Picker
     auto* filterBar = new QFrame(this);
-    filterBar->setStyleSheet("background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;");
+    filterBar->setStyleSheet("background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px;");
     auto* barLayout = new QHBoxLayout(filterBar);
 
     auto* busLbl = new QLabel("Select Bus:", filterBar);
-    busLbl->setStyleSheet("font-weight: bold;");
+    busLbl->setStyleSheet("font-weight: bold; color: #0f172a;");
     barLayout->addWidget(busLbl);
 
     busCombo = new QComboBox(filterBar);
-    busCombo->setMinimumWidth(150);
+    busCombo->setMinimumWidth(160);
+    busCombo->setStyleSheet("font-size: 13px; font-weight: 600; padding: 6px 10px;");
     barLayout->addWidget(busCombo);
 
     barLayout->addSpacing(30);
 
     auto* dateLbl = new QLabel("Date:", filterBar);
-    dateLbl->setStyleSheet("font-weight: bold;");
+    dateLbl->setStyleSheet("font-weight: bold; color: #0f172a;");
     barLayout->addWidget(dateLbl);
 
     datePicker = new QDateEdit(QDate::currentDate(), filterBar);
     datePicker->setCalendarPopup(true);
     datePicker->setDisplayFormat("yyyy-MM-dd");
+    datePicker->setStyleSheet("font-size: 13px; font-weight: 600; padding: 6px 10px; min-width: 130px;");
     barLayout->addWidget(datePicker);
 
     barLayout->addStretch();
     mainLayout->addWidget(filterBar);
 
-    // Attendance Table
+    // Attendance Table with Prominent, Wide Remarks Section
     attendanceTable = new QTableWidget(this);
     attendanceTable->setColumnCount(6);
     attendanceTable->setHorizontalHeaderLabels({
-        "Student ID", "Student Name", "Pickup Point", "Seat No", "Attendance Status", "Remarks"
+        "Student ID", "Student Name", "Pickup Point", "Seat No", "Attendance Status", "Remarks / Boarding Notes"
     });
-    attendanceTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    attendanceTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    // Configure column sizing so remarks is spacious and fully visible
+    attendanceTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    attendanceTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+    attendanceTable->setColumnWidth(1, 170);
+    attendanceTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Interactive);
+    attendanceTable->setColumnWidth(2, 170);
+    attendanceTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    attendanceTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Interactive);
+    attendanceTable->setColumnWidth(4, 160);
+    attendanceTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch); // Stretch remarks
+
+    attendanceTable->verticalHeader()->setDefaultSectionSize(44); // Spacious rows
     attendanceTable->verticalHeader()->setVisible(false);
+    attendanceTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     mainLayout->addWidget(attendanceTable);
 
     // Connect signals
@@ -137,21 +151,27 @@ void AttendanceView::handleBusOrDateChanged() {
             attendanceTable->insertRow(row);
 
             // Student ID
-            attendanceTable->setItem(row, 0, new QTableWidgetItem(QString::fromStdString(s.getId())));
-            attendanceTable->item(row, 0)->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            auto* idItem = new QTableWidgetItem(QString::fromStdString(s.getId()));
+            idItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            idItem->setFont(QFont(font().family(), 10, QFont::Bold));
+            attendanceTable->setItem(row, 0, idItem);
 
             // Name
-            attendanceTable->setItem(row, 1, new QTableWidgetItem(QString::fromStdString(s.getName())));
-            attendanceTable->item(row, 1)->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            auto* nameItem = new QTableWidgetItem(QString::fromStdString(s.getName()));
+            nameItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            attendanceTable->setItem(row, 1, nameItem);
 
-            // Pickup
-            attendanceTable->setItem(row, 2, new QTableWidgetItem(QString::fromStdString(s.getPickupPoint())));
-            attendanceTable->item(row, 2)->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            // Pickup Point
+            auto* pickupItem = new QTableWidgetItem(QString::fromStdString(s.getPickupPoint()));
+            pickupItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            attendanceTable->setItem(row, 2, pickupItem);
 
             // Seat No
-            QString seatStr = (s.getSeatNumber() > 0) ? QString::number(s.getSeatNumber()) : "None";
-            attendanceTable->setItem(row, 3, new QTableWidgetItem(seatStr));
-            attendanceTable->item(row, 3)->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            QString seatStr = (s.getSeatNumber() > 0) ? QString("Seat %1").arg(s.getSeatNumber()) : "None";
+            auto* seatItem = new QTableWidgetItem(seatStr);
+            seatItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            seatItem->setTextAlignment(Qt::AlignCenter);
+            attendanceTable->setItem(row, 3, seatItem);
 
             // Existing status & remarks if marked
             std::string status = "Present";
@@ -164,16 +184,38 @@ void AttendanceView::handleBusOrDateChanged() {
                 }
             }
 
-            // Status Combo Cell Widget
+            // Status Combo Cell Widget with prominent color badges
             auto* statusCombo = new QComboBox();
             statusCombo->addItem("Present");
             statusCombo->addItem("Absent");
             statusCombo->setCurrentText(QString::fromStdString(status));
+
+            auto applyComboStyle = [statusCombo]() {
+                if (statusCombo->currentText() == "Present") {
+                    statusCombo->setStyleSheet(
+                        "QComboBox { font-size: 13px; font-weight: bold; padding: 4px 10px; "
+                        "border: 1.5px solid #16a34a; border-radius: 6px; background-color: #f0fdf4; color: #15803d; }"
+                    );
+                } else {
+                    statusCombo->setStyleSheet(
+                        "QComboBox { font-size: 13px; font-weight: bold; padding: 4px 10px; "
+                        "border: 1.5px solid #dc2626; border-radius: 6px; background-color: #fef2f2; color: #b91c1c; }"
+                    );
+                }
+            };
+            applyComboStyle();
+            connect(statusCombo, &QComboBox::currentTextChanged, applyComboStyle);
             attendanceTable->setCellWidget(row, 4, statusCombo);
 
-            // Remarks LineEdit Cell Widget
+            // Remarks LineEdit Cell Widget (Large, clear, and visible)
             auto* remarksEdit = new QLineEdit();
             remarksEdit->setText(QString::fromStdString(remarks));
+            remarksEdit->setPlaceholderText("Enter attendance remarks / boarding notes...");
+            remarksEdit->setStyleSheet(
+                "QLineEdit { font-size: 13px; font-weight: 500; padding: 6px 12px; "
+                "border: 1.5px solid #cbd5e1; border-radius: 6px; background-color: #ffffff; color: #0f172a; }"
+                "QLineEdit:focus { border: 1.5px solid #2563eb; background-color: #f8fafc; }"
+            );
             attendanceTable->setCellWidget(row, 5, remarksEdit);
 
             row++;
@@ -227,9 +269,11 @@ void AttendanceView::handleSaveAttendance() {
 void AttendanceView::showHistoryDialog() {
     QDialog dlg(this);
     dlg.setWindowTitle("Previous Attendance Records History");
-    dlg.setFixedSize(750, 480);
+    dlg.setFixedSize(880, 520);
 
     auto* layout = new QVBoxLayout(&dlg);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(14);
 
     auto* filterLayout = new QHBoxLayout();
     auto* historyBusCombo = new QComboBox(&dlg);
@@ -246,9 +290,20 @@ void AttendanceView::showHistoryDialog() {
     auto* table = new QTableWidget(&dlg);
     table->setColumnCount(7);
     table->setHorizontalHeaderLabels({
-        "Record ID", "Date", "Bus ID", "Student ID", "Student Name", "Status", "Remarks"
+        "Record ID", "Date", "Bus ID", "Student ID", "Student Name", "Status", "Remarks / Notes"
     });
-    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Interactive);
+    table->setColumnWidth(4, 160);
+    table->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Interactive);
+    table->setColumnWidth(5, 120);
+    table->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Stretch); // Remarks column stretches wide
+    table->verticalHeader()->setDefaultSectionSize(36);
+    table->verticalHeader()->setVisible(false);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     layout->addWidget(table);
@@ -269,8 +324,12 @@ void AttendanceView::showHistoryDialog() {
             table->setItem(r, 4, new QTableWidgetItem(QString::fromStdString(a.getStudentName())));
 
             auto* statusItem = new QTableWidgetItem(QString::fromStdString(a.getStatus()));
-            if (a.getStatus() == "Present") statusItem->setForeground(QBrush(QColor("#16a34a")));
-            else statusItem->setForeground(QBrush(QColor("#dc2626")));
+            statusItem->setFont(QFont(font().family(), 10, QFont::Bold));
+            if (a.getStatus() == "Present") {
+                statusItem->setForeground(QBrush(QColor("#16a34a")));
+            } else {
+                statusItem->setForeground(QBrush(QColor("#dc2626")));
+            }
 
             table->setItem(r, 5, statusItem);
             table->setItem(r, 6, new QTableWidgetItem(QString::fromStdString(a.getRemarks())));

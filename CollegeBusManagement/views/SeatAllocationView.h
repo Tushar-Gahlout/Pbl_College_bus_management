@@ -23,7 +23,6 @@ private:
     QLabel* occupiedCountLbl;
     QLabel* availableCountLbl;
     QLabel* shiftInfoLbl;
-    QLabel* emptySeatsListLbl;
 
     QWidget* seatGridContainer;
     QGridLayout* seatGridLayout;
@@ -49,6 +48,9 @@ public slots:
 public:
     explicit SeatAllocationView(FileManager* fm, QWidget* parent = nullptr);
     ~SeatAllocationView() override = default;
+
+    void setReadOnly(bool readOnly);
+    void selectBus(const QString& busId);
 };
 
 #endif // SEATALLOCATIONVIEW_H

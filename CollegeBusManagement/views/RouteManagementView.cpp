@@ -10,7 +10,7 @@
 #include <QLabel>
 
 RouteManagementView::RouteManagementView(FileManager* fm, QWidget* parent)
-    : QWidget(parent), fileManager(fm) {
+    : QWidget(parent), fileManager(fm), isReadOnly(false) {
     setupUI();
     refreshData();
 }
@@ -22,9 +22,9 @@ void RouteManagementView::setupUI() {
 
     // Top Header & Action Buttons
     auto* topLayout = new QHBoxLayout();
-    auto* title = new QLabel("Route Management", this);
-    title->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
-    topLayout->addWidget(title);
+    titleLbl = new QLabel("Route Management", this);
+    titleLbl->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
+    topLayout->addWidget(titleLbl);
     topLayout->addStretch();
 
     addBtn = new QPushButton("➕ Add New Route", this);
@@ -101,11 +101,26 @@ void RouteManagementView::handleSearch() {
     }
 }
 
+void RouteManagementView::setReadOnly(bool readOnly) {
+    isReadOnly = readOnly;
+    addBtn->setVisible(!readOnly);
+    editBtn->setVisible(!readOnly);
+    deleteBtn->setVisible(!readOnly);
+
+    if (readOnly) {
+        titleLbl->setText("Bus Routes & Transit Schedule");
+    } else {
+        titleLbl->setText("Route Management");
+    }
+}
+
 void RouteManagementView::handleAdd() {
+    if (isReadOnly) return;
     showRouteFormDialog(nullptr);
 }
 
 void RouteManagementView::handleEdit() {
+    if (isReadOnly) return;
     int row = routeTable->currentRow();
     if (row < 0) {
         QMessageBox::information(this, "Select Route", "Please select a route from the table to edit.");
@@ -120,6 +135,7 @@ void RouteManagementView::handleEdit() {
 }
 
 void RouteManagementView::handleDelete() {
+    if (isReadOnly) return;
     int row = routeTable->currentRow();
     if (row < 0) {
         QMessageBox::information(this, "Select Route", "Please select a route to delete.");

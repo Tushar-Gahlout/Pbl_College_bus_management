@@ -121,8 +121,8 @@ void MapCanvas::paintEvent(QPaintEvent* /*event*/) {
     painter.setPen(QPen(QColor("#cbd5e1"), 16, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawPath(roadPath);
 
-    // 4. Draw Active Transit Lane (Vibrant Blue)
-    painter.setPen(QPen(QColor("#2563eb"), 6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    // 4. Draw Active Transit Lane (Vibrant Electric Indigo)
+    painter.setPen(QPen(QColor("#4f46e5"), 6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawPath(roadPath);
 
     // 5. Render Route Stops & Landmarks
@@ -131,30 +131,30 @@ void MapCanvas::paintEvent(QPaintEvent* /*event*/) {
 
         if (s.isDestination) {
             // College Campus
-            painter.setBrush(QColor("#16a34a"));
+            painter.setBrush(QColor("#059669"));
             painter.setPen(QPen(Qt::white, 3));
             painter.drawEllipse(s.pos, 16, 16);
 
-            painter.setPen(QColor("#0f172a"));
+            painter.setPen(QColor("#1e1b4b"));
             painter.setFont(QFont("Segoe UI", 10, QFont::Bold));
             painter.drawText(s.pos.x() - 65, s.pos.y() + 30, 130, 20, Qt::AlignCenter, "🎓 " + s.name);
         } else if (s.isOrigin) {
             // Origin Terminal
-            painter.setBrush(QColor("#6366f1"));
+            painter.setBrush(QColor("#4f46e5"));
             painter.setPen(QPen(Qt::white, 3));
             painter.drawEllipse(s.pos, 14, 14);
 
-            painter.setPen(QColor("#0f172a"));
+            painter.setPen(QColor("#1e1b4b"));
             painter.setFont(QFont("Segoe UI", 10, QFont::Bold));
             painter.drawText(s.pos.x() - 65, s.pos.y() + 28, 130, 20, Qt::AlignCenter, "🚩 " + s.name);
         } else {
             // Intermediate Transit Stop
             painter.setBrush(QColor("#ffffff"));
-            painter.setPen(QPen(QColor("#2563eb"), 3));
+            painter.setPen(QPen(QColor("#4f46e5"), 3));
             painter.drawEllipse(s.pos, 11, 11);
 
             // Stop number
-            painter.setPen(QColor("#2563eb"));
+            painter.setPen(QColor("#4f46e5"));
             painter.setFont(QFont("Segoe UI", 8, QFont::Bold));
             painter.drawText(QRectF(s.pos.x() - 10, s.pos.y() - 10, 20, 20), Qt::AlignCenter, QString::number(i));
 
@@ -169,9 +169,9 @@ void MapCanvas::paintEvent(QPaintEvent* /*event*/) {
 
     // Concentric Radar GPS Pulse Rings
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(37, 99, 235, 45));
+    painter.setBrush(QColor(79, 70, 229, 45));
     painter.drawEllipse(busPos, 34, 34);
-    painter.setBrush(QColor(37, 99, 235, 80));
+    painter.setBrush(QColor(79, 70, 229, 85));
     painter.drawEllipse(busPos, 22, 22);
 
     // Bus Core Marker
@@ -180,9 +180,9 @@ void MapCanvas::paintEvent(QPaintEvent* /*event*/) {
     painter.drawEllipse(busPos, 14, 14);
 
     // Floating Live Vehicle Telemetry Card
-    QRectF cardRect(busPos.x() - 80, busPos.y() - 52, 160, 34);
-    painter.setBrush(QColor("#0f172a"));
-    painter.setPen(QPen(QColor("#38bdf8"), 1));
+    QRectF cardRect(busPos.x() - 85, busPos.y() - 54, 170, 36);
+    painter.setBrush(QColor("#1e1b4b"));
+    painter.setPen(QPen(QColor("#818cf8"), 1.5));
     painter.drawRoundedRect(cardRect, 6, 6);
 
     painter.setPen(Qt::white);
@@ -214,94 +214,121 @@ void BusMapWidget::setupUI() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(12);
 
-    // 1. Top Control Bar
+    // 1. Top Control Bar (Clean 2-Row Design - No text clipping)
     auto* topCard = new QFrame(this);
-    topCard->setStyleSheet("background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;");
-    auto* topLayout = new QHBoxLayout(topCard);
+    topCard->setStyleSheet("background-color: #ffffff; border: 1px solid #e0e7ff; border-radius: 10px; padding: 12px;");
+    auto* topCardLayout = new QVBoxLayout(topCard);
+    topCardLayout->setSpacing(10);
+    topCardLayout->setContentsMargins(10, 8, 10, 8);
 
-    topLayout->addWidget(new QLabel("Select Bus Fleet:", topCard));
+    // Row 1: Bus Selector & Live Status Badges
+    auto* row1 = new QHBoxLayout();
+    row1->setSpacing(12);
+
+    auto* busSelectLbl = new QLabel("🚌 Select Bus:", topCard);
+    busSelectLbl->setStyleSheet("font-weight: bold; font-size: 13px; color: #1e1b4b;");
+    row1->addWidget(busSelectLbl);
 
     busSelectorCombo = new QComboBox(topCard);
-    busSelectorCombo->setMinimumWidth(150);
-    topLayout->addWidget(busSelectorCombo);
+    busSelectorCombo->setMinimumWidth(140);
+    busSelectorCombo->setStyleSheet("font-size: 13px; font-weight: 600; padding: 6px 10px;");
+    row1->addWidget(busSelectorCombo);
 
-    topLayout->addSpacing(16);
+    row1->addSpacing(8);
 
     // Live Shift Badge
     shiftBadgeLbl = new QLabel("Shift: Full Day", topCard);
-    shiftBadgeLbl->setStyleSheet("background-color: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
-    topLayout->addWidget(shiftBadgeLbl);
-
-    topLayout->addSpacing(10);
+    shiftBadgeLbl->setStyleSheet("background-color: #ede9fe; color: #4338ca; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px; border: 1px solid #ddd6fe;");
+    row1->addWidget(shiftBadgeLbl);
 
     // Empty Seats Badge
-    emptySeatsBadgeLbl = new QLabel("🟢 0 Empty Seats", topCard);
-    emptySeatsBadgeLbl->setStyleSheet("background-color: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
-    topLayout->addWidget(emptySeatsBadgeLbl);
-
-    topLayout->addSpacing(10);
+    emptySeatsBadgeLbl = new QLabel("💺 0 Empty Seats", topCard);
+    emptySeatsBadgeLbl->setStyleSheet("background-color: #ecfdf5; color: #065f46; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px; border: 1px solid #a7f3d0;");
+    row1->addWidget(emptySeatsBadgeLbl);
 
     // GPS Status Indicator
     liveGpsIndicatorLbl = new QLabel("🟢 GPS ONLINE", topCard);
     liveGpsIndicatorLbl->setStyleSheet("background-color: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
-    topLayout->addWidget(liveGpsIndicatorLbl);
+    row1->addWidget(liveGpsIndicatorLbl);
 
-    topLayout->addStretch();
+    row1->addStretch();
+    topCardLayout->addLayout(row1);
 
-    // Action Controls
-    playPauseBtn = new QPushButton("⏸ Pause", topCard);
-    playPauseBtn->setStyleSheet("background-color: #d97706; color: white; padding: 7px 14px; border-radius: 6px; font-weight: bold;");
+    // Row 2: Playback & Action Controls (Wide, comfortable, bold, readable)
+    auto* row2 = new QHBoxLayout();
+    row2->setSpacing(10);
+
+    playPauseBtn = new QPushButton("⏸ Pause Tracking", topCard);
+    playPauseBtn->setStyleSheet(
+        "QPushButton { background-color: #d97706; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 125px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #b45309; }"
+    );
     playPauseBtn->setCursor(Qt::PointingHandCursor);
 
     speedToggleBtn = new QPushButton("⚡ Speed: 1x", topCard);
-    speedToggleBtn->setStyleSheet("background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; padding: 7px 14px; border-radius: 6px; font-weight: 600;");
+    speedToggleBtn->setStyleSheet(
+        "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 105px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; }"
+    );
     speedToggleBtn->setCursor(Qt::PointingHandCursor);
 
-    nextStopBtn = new QPushButton("⏭ Next Stop", topCard);
-    nextStopBtn->setStyleSheet("background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; padding: 7px 14px; border-radius: 6px; font-weight: 600;");
+    nextStopBtn = new QPushButton("⏭ Skip to Next Stop", topCard);
+    nextStopBtn->setStyleSheet(
+        "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 145px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; }"
+    );
     nextStopBtn->setCursor(Qt::PointingHandCursor);
 
-    resetBtn = new QPushButton("🔄 Reset", topCard);
-    resetBtn->setStyleSheet("background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; padding: 7px 14px; border-radius: 6px; font-weight: 600;");
+    resetBtn = new QPushButton("🔄 Reset Route", topCard);
+    resetBtn->setStyleSheet(
+        "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 115px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; }"
+    );
     resetBtn->setCursor(Qt::PointingHandCursor);
 
-    bookEmptySeatBtn = new QPushButton("💺 Book Empty Seat", topCard);
-    bookEmptySeatBtn->setStyleSheet("background-color: #16a34a; color: white; padding: 7px 14px; border-radius: 6px; font-weight: bold;");
+    row2->addWidget(playPauseBtn);
+    row2->addWidget(speedToggleBtn);
+    row2->addWidget(nextStopBtn);
+    row2->addWidget(resetBtn);
+
+    row2->addStretch();
+
+    bookEmptySeatBtn = new QPushButton("🎟️ Book Empty Seat", topCard);
+    bookEmptySeatBtn->setStyleSheet(
+        "QPushButton { background-color: #059669; color: #ffffff; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 155px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #047857; }"
+    );
     bookEmptySeatBtn->setCursor(Qt::PointingHandCursor);
+    row2->addWidget(bookEmptySeatBtn);
 
-    topLayout->addWidget(playPauseBtn);
-    topLayout->addWidget(speedToggleBtn);
-    topLayout->addWidget(nextStopBtn);
-    topLayout->addWidget(resetBtn);
-    topLayout->addWidget(bookEmptySeatBtn);
-
+    topCardLayout->addLayout(row2);
     mainLayout->addWidget(topCard);
 
-    // 2. Telemetry HUD Bar
+    // 2. Telemetry HUD Bar (Deep Indigo Theme)
     auto* hudCard = new QFrame(this);
-    hudCard->setStyleSheet("background-color: #0f172a; border-radius: 8px; padding: 10px 18px;");
+    hudCard->setStyleSheet("background-color: #1e1b4b; border-radius: 8px; padding: 12px 20px; border: 1px solid #312e81;");
     auto* hudLayout = new QHBoxLayout(hudCard);
 
     currentStopValLbl = new QLabel("📍 Current Station: Origin Terminal", hudCard);
-    currentStopValLbl->setStyleSheet("color: #38bdf8; font-weight: bold; font-size: 13px;");
+    currentStopValLbl->setStyleSheet("color: #a5b4fc; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(currentStopValLbl);
 
-    hudLayout->addSpacing(20);
+    hudLayout->addSpacing(25);
 
     nextStopValLbl = new QLabel("➔ Next Stop: Loading...", hudCard);
-    nextStopValLbl->setStyleSheet("color: #fde047; font-weight: bold; font-size: 13px;");
+    nextStopValLbl->setStyleSheet("color: #fde047; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(nextStopValLbl);
 
-    hudLayout->addSpacing(20);
+    hudLayout->addSpacing(25);
 
     speedValLbl = new QLabel("Speed: 42 km/h", hudCard);
-    speedValLbl->setStyleSheet("color: #a7f3d0; font-weight: bold; font-size: 13px;");
+    speedValLbl->setStyleSheet("color: #34d399; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(speedValLbl);
 
-    hudLayout->addSpacing(20);
+    hudLayout->addSpacing(25);
 
     etaValLbl = new QLabel("ETA: 3 mins", hudCard);
-    etaValLbl->setStyleSheet("color: #ffffff; font-weight: bold; font-size: 13px;");
+    etaValLbl->setStyleSheet("color: #ffffff; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(etaValLbl);
 
     hudLayout->addStretch();
@@ -364,15 +391,15 @@ void BusMapWidget::handleBusChanged(int /*index*/) {
     QString shift = QString::fromStdString(b.getShiftType());
     if (shift.contains("Half")) {
         shiftBadgeLbl->setText("Shift: " + shift);
-        shiftBadgeLbl->setStyleSheet("background-color: #ffedd5; color: #c2410c; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
+        shiftBadgeLbl->setStyleSheet("background-color: #ffedd5; color: #c2410c; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px; border: 1px solid #fed7aa;");
     } else {
-        shiftBadgeLbl->setText("Shift: Full Day Transit (Morning + Evening)");
-        shiftBadgeLbl->setStyleSheet("background-color: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
+        shiftBadgeLbl->setText("Shift: Full Day");
+        shiftBadgeLbl->setStyleSheet("background-color: #ede9fe; color: #4338ca; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px; border: 1px solid #ddd6fe;");
     }
 
     // Empty Seats Badge
     auto emptySeats = fileManager->getEmptySeatsForBus(bId);
-    emptySeatsBadgeLbl->setText(QString("🟢 %1 Empty Seats Available").arg(emptySeats.size()));
+    emptySeatsBadgeLbl->setText(QString("💺 %1 Empty Seats").arg(emptySeats.size()));
 
     updateMapForSelectedBus();
     updateTelemetry();
@@ -453,16 +480,22 @@ void BusMapWidget::updateTelemetry() {
 void BusMapWidget::handleToggleTracking() {
     isLiveTracking = !isLiveTracking;
     if (isLiveTracking) {
-        playPauseBtn->setText("⏸ Pause");
-        playPauseBtn->setStyleSheet("background-color: #d97706; color: white; padding: 7px 14px; border-radius: 6px; font-weight: bold;");
+        playPauseBtn->setText("⏸ Pause Tracking");
+        playPauseBtn->setStyleSheet(
+            "QPushButton { background-color: #d97706; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 125px; }"
+            "QPushButton:hover { background-color: #b45309; }"
+        );
         liveGpsIndicatorLbl->setText("🟢 GPS ONLINE");
         liveGpsIndicatorLbl->setStyleSheet("background-color: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
         animTimer->start(40);
     } else {
-        playPauseBtn->setText("▶ Resume");
-        playPauseBtn->setStyleSheet("background-color: #2563eb; color: white; padding: 7px 14px; border-radius: 6px; font-weight: bold;");
+        playPauseBtn->setText("▶ Resume Tracking");
+        playPauseBtn->setStyleSheet(
+            "QPushButton { background-color: #4f46e5; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 125px; }"
+            "QPushButton:hover { background-color: #4338ca; }"
+        );
         liveGpsIndicatorLbl->setText("⏸ GPS PAUSED");
-        liveGpsIndicatorLbl->setStyleSheet("background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
+        liveGpsIndicatorLbl->setStyleSheet("background-color: #fef2f2; color: #e11d48; border: 1px solid #fecdd3; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
         animTimer->stop();
     }
 }
