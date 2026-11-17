@@ -21,18 +21,18 @@ void LoginDialog::setupUI() {
 
     // Header with Logo / Icon
     auto* titleLabel = new QLabel("🚌 College Bus Management", this);
-    titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #1e3a8a;");
+    titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #1e1b4b;");
     titleLabel->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(titleLabel);
 
     auto* subLabel = new QLabel("Sign in to your account", this);
-    subLabel->setStyleSheet("font-size: 13px; color: #64748b; margin-bottom: 10px;");
+    subLabel->setStyleSheet("font-size: 13px; color: #64748b; margin-bottom: 10px; font-weight: 500;");
     subLabel->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(subLabel);
 
     // Quick Login Demo Selector (Convenient for PBL project evaluation!)
     auto* demoBox = new QGroupBox("Quick Demo Login (Evaluation Helper)", this);
-    demoBox->setStyleSheet("QGroupBox { font-weight: bold; color: #2563eb; border: 1px dashed #93c5fd; border-radius: 6px; margin-top: 10px; padding: 10px; }");
+    demoBox->setStyleSheet("QGroupBox { font-weight: bold; color: #4f46e5; border: 1.5px dashed #c7d2fe; border-radius: 6px; margin-top: 10px; padding: 10px; }");
     auto* demoLayout = new QVBoxLayout(demoBox);
 
     roleHintCombo = new QComboBox(demoBox);
