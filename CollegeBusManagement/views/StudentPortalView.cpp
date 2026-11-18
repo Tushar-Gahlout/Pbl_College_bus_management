@@ -169,6 +169,7 @@ void StudentPortalView::refreshData() {
         routeNameLbl->setText("Route: -");
         pickupInfoLbl->setText("Pickup: -");
         seatNumLbl->setText("Seat: Unassigned");
+        travelStatusLbl->setText("");
     } else {
         Bus b = fileManager->getBusById(bId);
         busIdLbl->setText("Assigned Bus: " + QString::fromStdString(b.getBusId()) + " [" + QString::fromStdString(b.getShiftType()) + "]");
