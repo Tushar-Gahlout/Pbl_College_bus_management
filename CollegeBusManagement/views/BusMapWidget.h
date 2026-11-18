@@ -30,8 +30,13 @@ private:
     std::string busId;
     std::string shiftType;
     std::vector<MapStop> stops;
+    QPixmap backgroundMap;
+    int pulsePhase;
 
     QPointF getInterpolatedBusPos() const;
+    float getBusHeadingAngle() const;
+    void drawBusVehicle(QPainter& painter, const QPointF& pos, float angleDeg);
+    void drawProceduralMap(QPainter& painter);
 
 protected:
     void paintEvent(QPaintEvent* event) override;

@@ -1,5 +1,6 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource prefix="/">
     <file>style.qss</file>
+    <file>city_map_bg.png</file>
 </qresource>
 </RCC>
