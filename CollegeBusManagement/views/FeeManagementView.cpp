@@ -24,13 +24,16 @@ void FeeManagementView::setupUI() {
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // Top Header & Action Buttons
+    // Top Header
     auto* topLayout = new QHBoxLayout();
     auto* title = new QLabel("Fee Management & Receipts", this);
     title->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
     topLayout->addWidget(title);
     topLayout->addStretch();
+    mainLayout->addLayout(topLayout);
 
+    // Action Buttons Row
+    auto* actionLayout = new QHBoxLayout();
     recordPaymentBtn = new QPushButton("💳 Record Payment", this);
     recordPaymentBtn->setProperty("class", "primaryButton");
     recordPaymentBtn->setCursor(Qt::PointingHandCursor);
@@ -43,10 +46,11 @@ void FeeManagementView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
-    topLayout->addWidget(recordPaymentBtn);
-    topLayout->addWidget(viewReceiptBtn);
-    topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    actionLayout->addWidget(recordPaymentBtn);
+    actionLayout->addWidget(viewReceiptBtn);
+    actionLayout->addWidget(refreshBtn);
+    actionLayout->addStretch();
+    mainLayout->addLayout(actionLayout);
 
     // Financial KPI Summary Cards
     auto* kpiLayout = new QHBoxLayout();

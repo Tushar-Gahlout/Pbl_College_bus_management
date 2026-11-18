@@ -20,22 +20,25 @@ void DriverManagementView::setupUI() {
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // Top Header & Action Buttons
+    // Top Header
     auto* topLayout = new QHBoxLayout();
     auto* title = new QLabel("Driver Management", this);
     title->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
     topLayout->addWidget(title);
     topLayout->addStretch();
+    mainLayout->addLayout(topLayout);
 
+    // Action Buttons Row
+    auto* actionLayout = new QHBoxLayout();
     addBtn = new QPushButton("➕ Add Driver", this);
     addBtn->setProperty("class", "primaryButton");
     addBtn->setCursor(Qt::PointingHandCursor);
 
-    editBtn = new QPushButton("✏️ Edit", this);
+    editBtn = new QPushButton("✏️ Edit Driver", this);
     editBtn->setProperty("class", "secondaryButton");
     editBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteBtn = new QPushButton("🗑️ Delete", this);
+    deleteBtn = new QPushButton("🗑️ Delete Driver", this);
     deleteBtn->setProperty("class", "dangerButton");
     deleteBtn->setCursor(Qt::PointingHandCursor);
 
@@ -47,12 +50,13 @@ void DriverManagementView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
-    topLayout->addWidget(addBtn);
-    topLayout->addWidget(editBtn);
-    topLayout->addWidget(deleteBtn);
-    topLayout->addWidget(viewDetailsBtn);
-    topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    actionLayout->addWidget(addBtn);
+    actionLayout->addWidget(editBtn);
+    actionLayout->addWidget(deleteBtn);
+    actionLayout->addWidget(viewDetailsBtn);
+    actionLayout->addWidget(refreshBtn);
+    actionLayout->addStretch();
+    mainLayout->addLayout(actionLayout);
 
     // Search Bar
     searchEdit = new QLineEdit(this);

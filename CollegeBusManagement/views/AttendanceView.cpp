@@ -18,13 +18,16 @@ void AttendanceView::setupUI() {
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // Header & Actions
+    // Header Row
     auto* topLayout = new QHBoxLayout();
     auto* title = new QLabel("Attendance Management", this);
     title->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
     topLayout->addWidget(title);
     topLayout->addStretch();
+    mainLayout->addLayout(topLayout);
 
+    // Action Buttons Row
+    auto* actionLayout = new QHBoxLayout();
     saveAttendanceBtn = new QPushButton("💾 Save Attendance", this);
     saveAttendanceBtn->setProperty("class", "primaryButton");
     saveAttendanceBtn->setCursor(Qt::PointingHandCursor);
@@ -45,12 +48,13 @@ void AttendanceView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
-    topLayout->addWidget(saveAttendanceBtn);
-    topLayout->addWidget(markAllPresentBtn);
-    topLayout->addWidget(markAllAbsentBtn);
-    topLayout->addWidget(viewHistoryBtn);
-    topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    actionLayout->addWidget(saveAttendanceBtn);
+    actionLayout->addWidget(markAllPresentBtn);
+    actionLayout->addWidget(markAllAbsentBtn);
+    actionLayout->addWidget(viewHistoryBtn);
+    actionLayout->addWidget(refreshBtn);
+    actionLayout->addStretch();
+    mainLayout->addLayout(actionLayout);
 
     // Filter Bar: Bus selector + Date Picker
     auto* filterBar = new QFrame(this);

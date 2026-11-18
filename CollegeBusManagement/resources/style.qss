@@ -126,9 +126,10 @@ QPushButton {
     color: #78350f;
     border: 1.5px solid #e8decb;
     border-radius: 6px;
-    padding: 6px 14px;
-    min-height: 34px;
-    font-size: 12px;
+    padding: 7px 16px;
+    min-height: 36px;
+    min-width: 110px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -147,9 +148,10 @@ QPushButton.primaryButton, QPushButton[class="primaryButton"] {
     color: #ffffff;
     border: 1px solid #b45309;
     border-radius: 6px;
-    padding: 6px 14px;
-    min-height: 34px;
-    font-size: 12px;
+    padding: 7px 18px;
+    min-height: 36px;
+    min-width: 120px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -166,9 +168,10 @@ QPushButton.secondaryButton, QPushButton[class="secondaryButton"] {
     color: #78350f;
     border: 1.5px solid #d97706;
     border-radius: 6px;
-    padding: 6px 14px;
-    min-height: 34px;
-    font-size: 12px;
+    padding: 7px 16px;
+    min-height: 36px;
+    min-width: 110px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -187,9 +190,10 @@ QPushButton.successButton, QPushButton[class="successButton"] {
     color: #ffffff;
     border: 1px solid #047857;
     border-radius: 6px;
-    padding: 6px 14px;
-    min-height: 34px;
-    font-size: 12px;
+    padding: 7px 16px;
+    min-height: 36px;
+    min-width: 110px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -202,9 +206,10 @@ QPushButton.dangerButton, QPushButton[class="dangerButton"] {
     color: #ffffff;
     border: 1px solid #be123c;
     border-radius: 6px;
-    padding: 6px 14px;
-    min-height: 34px;
-    font-size: 12px;
+    padding: 7px 16px;
+    min-height: 36px;
+    min-width: 110px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -213,10 +218,10 @@ QPushButton.dangerButton:hover, QPushButton[class="dangerButton"]:hover {
 }
 
 QDialogButtonBox QPushButton {
-    min-width: 80px;
-    min-height: 34px;
-    padding: 6px 14px;
-    font-size: 12px;
+    min-width: 90px;
+    min-height: 36px;
+    padding: 7px 16px;
+    font-size: 13px;
     font-weight: 700;
 }
 

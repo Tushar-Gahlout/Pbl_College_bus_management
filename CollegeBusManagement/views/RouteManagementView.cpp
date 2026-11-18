@@ -23,22 +23,25 @@ void RouteManagementView::setupUI() {
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // Top Header & Action Buttons (Row 1)
+    // Top Header Row
     auto* topLayout = new QHBoxLayout();
     titleLbl = new QLabel("Route Management", this);
     titleLbl->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
     topLayout->addWidget(titleLbl);
     topLayout->addStretch();
+    mainLayout->addLayout(topLayout);
 
+    // Action Buttons Row
+    auto* actionLayout = new QHBoxLayout();
     addBtn = new QPushButton("➕ Add Route", this);
     addBtn->setProperty("class", "primaryButton");
     addBtn->setCursor(Qt::PointingHandCursor);
 
-    editBtn = new QPushButton("✏️ Edit", this);
+    editBtn = new QPushButton("✏️ Edit Route", this);
     editBtn->setProperty("class", "secondaryButton");
     editBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteBtn = new QPushButton("🗑️ Delete", this);
+    deleteBtn = new QPushButton("🗑️ Delete Route", this);
     deleteBtn->setProperty("class", "dangerButton");
     deleteBtn->setCursor(Qt::PointingHandCursor);
 
@@ -46,25 +49,26 @@ void RouteManagementView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
-    topLayout->addWidget(addBtn);
-    topLayout->addWidget(editBtn);
-    topLayout->addWidget(deleteBtn);
-    topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    actionLayout->addWidget(addBtn);
+    actionLayout->addWidget(editBtn);
+    actionLayout->addWidget(deleteBtn);
+    actionLayout->addWidget(refreshBtn);
+    actionLayout->addStretch();
+    mainLayout->addLayout(actionLayout);
 
-    // Search bar & Pure C DS Tools (Row 2)
+    // Search bar & Pure C DS Tools (Row 3)
     auto* searchToolLayout = new QHBoxLayout();
     searchEdit = new QLineEdit(this);
     searchEdit->setPlaceholderText("🔍 Search routes by ID, Name, Start, End, or Stops...");
     searchEdit->setClearButtonEnabled(true);
-    searchToolLayout->addWidget(searchEdit, 2);
+    searchToolLayout->addWidget(searchEdit, 1);
 
     stopsListBtn = new QPushButton("🔗 Stops (Linked List)", this);
     stopsListBtn->setProperty("class", "secondaryButton");
     stopsListBtn->setCursor(Qt::PointingHandCursor);
     stopsListBtn->setToolTip("View Route Stop sequence as Pure C Singly Linked List nodes");
 
-    networkGraphBtn = new QPushButton("🗺️ Reachability (Graph BFS)", this);
+    networkGraphBtn = new QPushButton("🗺️ Graph BFS Reachability", this);
     networkGraphBtn->setProperty("class", "secondaryButton");
     networkGraphBtn->setCursor(Qt::PointingHandCursor);
     networkGraphBtn->setToolTip("Test Bus Stop Connectivity using Pure C Graph BFS Traversal");

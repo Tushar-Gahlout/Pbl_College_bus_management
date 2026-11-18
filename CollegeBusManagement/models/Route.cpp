@@ -61,11 +61,19 @@ std::string Route::serialize() const {
 }
 
 Route Route::deserialize(const std::string& line) {
+    // Helper: trim whitespace and \r from both ends
+    auto trimStr = [](const std::string& s) -> std::string {
+        size_t first = s.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return "";
+        size_t last = s.find_last_not_of(" \t\r\n");
+        return s.substr(first, last - first + 1);
+    };
+
     std::vector<std::string> tokens;
     std::stringstream ss(line);
     std::string token;
     while (std::getline(ss, token, '|')) {
-        tokens.push_back(token);
+        tokens.push_back(trimStr(token));
     }
 
     if (tokens.size() < 7) {
@@ -76,7 +84,8 @@ Route Route::deserialize(const std::string& line) {
     std::stringstream stopStream(tokens[4]);
     std::string s;
     while (std::getline(stopStream, s, ';')) {
-        if (!s.empty()) stopList.push_back(s);
+        std::string trimmed = trimStr(s);
+        if (!trimmed.empty()) stopList.push_back(trimmed);
     }
 
     std::string bus = (tokens.size() >= 8) ? tokens[7] : "None";

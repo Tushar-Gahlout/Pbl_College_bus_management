@@ -20,22 +20,25 @@ void StudentManagementView::setupUI() {
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // Header & Action Bar (Row 1)
+    // Header Row
     auto* topLayout = new QHBoxLayout();
     auto* title = new QLabel("Student Management", this);
     title->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
     topLayout->addWidget(title);
     topLayout->addStretch();
+    mainLayout->addLayout(topLayout);
 
+    // Action Buttons Row
+    auto* actionLayout = new QHBoxLayout();
     addBtn = new QPushButton("➕ Add Student", this);
     addBtn->setProperty("class", "primaryButton");
     addBtn->setCursor(Qt::PointingHandCursor);
 
-    editBtn = new QPushButton("✏️ Edit", this);
+    editBtn = new QPushButton("✏️ Edit Student", this);
     editBtn->setProperty("class", "secondaryButton");
     editBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteBtn = new QPushButton("🗑️ Delete", this);
+    deleteBtn = new QPushButton("🗑️ Delete Student", this);
     deleteBtn->setProperty("class", "dangerButton");
     deleteBtn->setCursor(Qt::PointingHandCursor);
 
@@ -43,13 +46,14 @@ void StudentManagementView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
-    topLayout->addWidget(addBtn);
-    topLayout->addWidget(editBtn);
-    topLayout->addWidget(deleteBtn);
-    topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    actionLayout->addWidget(addBtn);
+    actionLayout->addWidget(editBtn);
+    actionLayout->addWidget(deleteBtn);
+    actionLayout->addWidget(refreshBtn);
+    actionLayout->addStretch();
+    mainLayout->addLayout(actionLayout);
 
-    // Search, Filter & Pure C DS Tools Bar (Row 2)
+    // Search & Filter Bar (Row 3)
     auto* filterLayout = new QHBoxLayout();
     searchEdit = new QLineEdit(this);
     searchEdit->setPlaceholderText("🔍 Search student by ID, Name, Department, Bus or Stop...");

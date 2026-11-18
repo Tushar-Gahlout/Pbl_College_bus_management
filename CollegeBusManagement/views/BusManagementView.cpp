@@ -28,22 +28,25 @@ void BusManagementView::setupUI() {
     listLayout->setContentsMargins(16, 16, 16, 16);
     listLayout->setSpacing(14);
 
-    // Header & Actions
+    // Header Row
     auto* topLayout = new QHBoxLayout();
     auto* title = new QLabel("Bus Fleet Management", listTab);
     title->setStyleSheet("font-size: 20px; font-weight: bold; color: #78350f;");
     topLayout->addWidget(title);
     topLayout->addStretch();
+    listLayout->addLayout(topLayout);
 
+    // Action Buttons Row
+    auto* actionLayout = new QHBoxLayout();
     addBtn = new QPushButton("➕ Add Bus", listTab);
     addBtn->setProperty("class", "primaryButton");
     addBtn->setCursor(Qt::PointingHandCursor);
 
-    editBtn = new QPushButton("✏️ Edit", listTab);
+    editBtn = new QPushButton("✏️ Edit Bus", listTab);
     editBtn->setProperty("class", "secondaryButton");
     editBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteBtn = new QPushButton("🗑️ Delete", listTab);
+    deleteBtn = new QPushButton("🗑️ Delete Bus", listTab);
     deleteBtn->setProperty("class", "dangerButton");
     deleteBtn->setCursor(Qt::PointingHandCursor);
 
@@ -51,7 +54,7 @@ void BusManagementView::setupUI() {
     viewPassengersBtn->setProperty("class", "secondaryButton");
     viewPassengersBtn->setCursor(Qt::PointingHandCursor);
 
-    trackMapBtn = new QPushButton("🗺️ View on Live Map", listTab);
+    trackMapBtn = new QPushButton("🗺️ Live Map", listTab);
     trackMapBtn->setProperty("class", "primaryButton");
     trackMapBtn->setCursor(Qt::PointingHandCursor);
 
@@ -59,13 +62,14 @@ void BusManagementView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
-    topLayout->addWidget(addBtn);
-    topLayout->addWidget(editBtn);
-    topLayout->addWidget(deleteBtn);
-    topLayout->addWidget(viewPassengersBtn);
-    topLayout->addWidget(trackMapBtn);
-    topLayout->addWidget(refreshBtn);
-    listLayout->addLayout(topLayout);
+    actionLayout->addWidget(addBtn);
+    actionLayout->addWidget(editBtn);
+    actionLayout->addWidget(deleteBtn);
+    actionLayout->addWidget(viewPassengersBtn);
+    actionLayout->addWidget(trackMapBtn);
+    actionLayout->addWidget(refreshBtn);
+    actionLayout->addStretch();
+    listLayout->addLayout(actionLayout);
 
     // Search bar
     searchEdit = new QLineEdit(listTab);

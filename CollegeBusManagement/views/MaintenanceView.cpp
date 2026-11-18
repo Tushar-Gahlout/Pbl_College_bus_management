@@ -22,26 +22,29 @@ void MaintenanceView::setupUI() {
     mainLayout->setContentsMargins(24, 24, 24, 24);
     mainLayout->setSpacing(16);
 
-    // Top Header & Action Buttons
+    // Top Header
     auto* topLayout = new QHBoxLayout();
     auto* title = new QLabel("Bus Maintenance & Servicing", this);
     title->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
     topLayout->addWidget(title);
     topLayout->addStretch();
+    mainLayout->addLayout(topLayout);
 
+    // Action Buttons Row
+    auto* actionLayout = new QHBoxLayout();
     addRecordBtn = new QPushButton("➕ Add Record", this);
     addRecordBtn->setProperty("class", "primaryButton");
     addRecordBtn->setCursor(Qt::PointingHandCursor);
 
-    editRecordBtn = new QPushButton("✏️ Edit", this);
+    editRecordBtn = new QPushButton("✏️ Edit Record", this);
     editRecordBtn->setProperty("class", "secondaryButton");
     editRecordBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteRecordBtn = new QPushButton("🗑️ Delete", this);
+    deleteRecordBtn = new QPushButton("🗑️ Delete Record", this);
     deleteRecordBtn->setProperty("class", "dangerButton");
     deleteRecordBtn->setCursor(Qt::PointingHandCursor);
 
-    toggleBusStatusBtn = new QPushButton("🛠️ Bus Status", this);
+    toggleBusStatusBtn = new QPushButton("🛠️ Toggle Bus Status", this);
     toggleBusStatusBtn->setProperty("class", "secondaryButton");
     toggleBusStatusBtn->setCursor(Qt::PointingHandCursor);
 
@@ -49,12 +52,13 @@ void MaintenanceView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
-    topLayout->addWidget(addRecordBtn);
-    topLayout->addWidget(editRecordBtn);
-    topLayout->addWidget(deleteRecordBtn);
-    topLayout->addWidget(toggleBusStatusBtn);
-    topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    actionLayout->addWidget(addRecordBtn);
+    actionLayout->addWidget(editRecordBtn);
+    actionLayout->addWidget(deleteRecordBtn);
+    actionLayout->addWidget(toggleBusStatusBtn);
+    actionLayout->addWidget(refreshBtn);
+    actionLayout->addStretch();
+    mainLayout->addLayout(actionLayout);
 
     // Filter Bar & Metrics
     auto* filterBar = new QFrame(this);
