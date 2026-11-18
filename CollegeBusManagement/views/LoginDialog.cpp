@@ -21,18 +21,18 @@ void LoginDialog::setupUI() {
 
     // Header with Logo / Icon
     auto* titleLabel = new QLabel("🚌 College Bus Management", this);
-    titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #1e1b4b;");
+    titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #78350f;");
     titleLabel->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(titleLabel);
 
     auto* subLabel = new QLabel("Sign in to your account", this);
-    subLabel->setStyleSheet("font-size: 13px; color: #64748b; margin-bottom: 10px; font-weight: 500;");
+    subLabel->setStyleSheet("font-size: 13px; color: #78716c; margin-bottom: 10px; font-weight: 500;");
     subLabel->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(subLabel);
 
     // Quick Login Demo Selector (Convenient for PBL project evaluation!)
     auto* demoBox = new QGroupBox("Quick Demo Login (Evaluation Helper)", this);
-    demoBox->setStyleSheet("QGroupBox { font-weight: bold; color: #4f46e5; border: 1.5px dashed #c7d2fe; border-radius: 6px; margin-top: 10px; padding: 10px; }");
+    demoBox->setStyleSheet("QGroupBox { font-weight: bold; color: #b45309; border: 1.5px dashed #f59e0b; border-radius: 6px; margin-top: 10px; padding: 10px; background-color: #fffbeb; }");
     auto* demoLayout = new QVBoxLayout(demoBox);
 
     roleHintCombo = new QComboBox(demoBox);
@@ -42,6 +42,8 @@ void LoginDialog::setupUI() {
     roleHintCombo->addItem("Student 2 - Priya (student2 / pass123)");
     roleHintCombo->addItem("Driver 1 - Rajesh (driver1 / pass123)");
     roleHintCombo->addItem("Driver 2 - Vikram (driver2 / pass123)");
+    roleHintCombo->addItem("Conductor 1 - Ramesh (conductor1 / pass123)");
+    roleHintCombo->addItem("Conductor 2 - Sunil (conductor2 / pass123)");
     demoLayout->addWidget(roleHintCombo);
     mainLayout->addWidget(demoBox);
 
@@ -106,6 +108,12 @@ void LoginDialog::handleQuickFill(int index) {
         passwordEdit->setText("pass123");
     } else if (index == 5) { // Driver 2
         usernameEdit->setText("driver2");
+        passwordEdit->setText("pass123");
+    } else if (index == 6) { // Conductor 1
+        usernameEdit->setText("conductor1");
+        passwordEdit->setText("pass123");
+    } else if (index == 7) { // Conductor 2
+        usernameEdit->setText("conductor2");
         passwordEdit->setText("pass123");
     }
 }

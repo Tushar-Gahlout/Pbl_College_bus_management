@@ -39,7 +39,7 @@ QWidget* AdminDashboardView::createMetricCard(const QString& title, QLabel*& val
 
     valLabel = new QLabel("0", card);
     valLabel->setMinimumHeight(34);
-    valLabel->setStyleSheet("font-size: 26px; font-weight: 800; color: #0f172a; padding: 0px;");
+    valLabel->setStyleSheet("font-size: 26px; font-weight: 800; color: #78350f; padding: 0px;");
     valLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     layout->addLayout(topLayout);
@@ -67,14 +67,14 @@ void AdminDashboardView::setupUI() {
     // Header section
     auto* headerLayout = new QHBoxLayout();
     auto* title = new QLabel("Administrator Overview", scrollContent);
-    title->setStyleSheet("font-size: 22px; font-weight: bold; color: #1e1b4b;");
+    title->setStyleSheet("font-size: 22px; font-weight: bold; color: #78350f;");
     headerLayout->addWidget(title);
     headerLayout->addStretch();
 
     auto* refreshBtn = new QPushButton("🔄 Refresh Stats", scrollContent);
     refreshBtn->setStyleSheet(
-        "QPushButton { background-color: #4f46e5; color: #ffffff; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; min-height: 38px; }"
-        "QPushButton:hover { background-color: #4338ca; }"
+        "QPushButton { background-color: #d97706; color: #ffffff; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 13px; min-height: 38px; border: 1px solid #b45309; }"
+        "QPushButton:hover { background-color: #b45309; }"
     );
     refreshBtn->setCursor(Qt::PointingHandCursor);
     connect(refreshBtn, &QPushButton::clicked, this, &AdminDashboardView::refreshData);
@@ -85,11 +85,11 @@ void AdminDashboardView::setupUI() {
     auto* gridLayout = new QGridLayout();
     gridLayout->setSpacing(16);
 
-    gridLayout->addWidget(createMetricCard("Total Students", totalStudentsVal, "🎓", "#4f46e5"), 0, 0);
-    gridLayout->addWidget(createMetricCard("Total Buses", totalBusesVal, "🚌", "#059669"), 0, 1);
-    gridLayout->addWidget(createMetricCard("Total Drivers", totalDriversVal, "🧑‍✈️", "#d97706"), 0, 2);
+    gridLayout->addWidget(createMetricCard("Total Students", totalStudentsVal, "🎓", "#d97706"), 0, 0);
+    gridLayout->addWidget(createMetricCard("Total Buses", totalBusesVal, "🚌", "#b45309"), 0, 1);
+    gridLayout->addWidget(createMetricCard("Total Drivers", totalDriversVal, "🧑‍✈️", "#f59e0b"), 0, 2);
 
-    gridLayout->addWidget(createMetricCard("Active Routes", totalRoutesVal, "🗺️", "#7c3aed"), 1, 0);
+    gridLayout->addWidget(createMetricCard("Active Routes", totalRoutesVal, "🗺️", "#059669"), 1, 0);
     gridLayout->addWidget(createMetricCard("Available Seats", availableSeatsVal, "💺", "#0284c7"), 1, 1);
     gridLayout->addWidget(createMetricCard("Pending Fees (₹)", pendingFeesVal, "💳", "#e11d48"), 1, 2);
 
@@ -97,10 +97,10 @@ void AdminDashboardView::setupUI() {
 
     // Quick Action Bar - 2 Row Grid for maximum clarity and zero truncation
     auto* quickBox = new QFrame(scrollContent);
-    quickBox->setStyleSheet("background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px;");
+    quickBox->setStyleSheet("background-color: #ffffff; border: 1.5px solid #fde68a; border-radius: 10px; padding: 14px;");
     auto* quickLayout = new QVBoxLayout(quickBox);
     auto* quickTitle = new QLabel("Quick Management Actions", quickBox);
-    quickTitle->setStyleSheet("font-size: 14px; font-weight: bold; color: #1e1b4b; margin-bottom: 4px;");
+    quickTitle->setStyleSheet("font-size: 14px; font-weight: bold; color: #78350f; margin-bottom: 4px;");
     quickLayout->addWidget(quickTitle);
 
     auto* btnGrid = new QGridLayout();
@@ -109,8 +109,8 @@ void AdminDashboardView::setupUI() {
     auto makeActionBtn = [&](const QString& text, int page) {
         auto* btn = new QPushButton(text, quickBox);
         btn->setStyleSheet(
-            "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; border-radius: 6px; padding: 8px 14px; font-weight: 700; font-size: 13px; min-height: 38px; text-align: center; }"
-            "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; color: #1e1b4b; }"
+            "QPushButton { background-color: #fffbeb; color: #78350f; border: 1.5px solid #f59e0b; border-radius: 6px; padding: 8px 14px; font-weight: 700; font-size: 13px; min-height: 38px; text-align: center; }"
+            "QPushButton:hover { background-color: #fef3c7; border-color: #d97706; color: #451a03; }"
         );
         btn->setCursor(Qt::PointingHandCursor);
         connect(btn, &QPushButton::clicked, this, [this, page]() { emit navigateTo(page); });

@@ -15,3 +15,7 @@ ATT014|2026-11-17|BUS05|STU110|Manish Tiwari|Present|Boarded at Industrial Area
 ATT015|2026-11-17|BUS05|STU111|Simran Kaur|Present|Boarded at Highway Flyover
 ATT016|2026-11-17|BUS06|STU112|Harsh Vardhan|Present|Boarded at Model Town
 ATT017|2026-11-17|BUS06|STU113|Divya Chawla|Present|Boarded at Kashmere Gate
+ATT-2026-11-18-STU101|2026-11-18|BUS01|STU101|Rahul Sharma|Absent|Regular Boarding
+ATT-2026-11-18-STU102|2026-11-18|BUS01|STU102|Priya Patel|Present|Regular Boarding
+ATT-2026-11-18-STU106|2026-11-18|BUS01|STU106|Ananya Roy|Present|Regular Boarding
+ATT-2026-11-18-STU108|2026-11-18|BUS01|STU108|Aditya Kapoor|Present|Regular Boarding

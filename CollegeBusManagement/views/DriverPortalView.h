@@ -28,11 +28,16 @@ private:
     QLabel* routeNameLbl;
     QLabel* timingLbl;
     QLabel* stopsLbl;
+    QLabel* dutyTravelTimeLbl;
 
     QTableWidget* passengerTable;
+    QPushButton* liveMapBtn;
     QPushButton* refreshBtn;
 
     void setupUI();
+
+signals:
+    void requestLiveMap(const QString& busId);
 
 public slots:
     void refreshData();

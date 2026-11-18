@@ -29,6 +29,7 @@ private:
     QLabel* routeNameLbl;
     QLabel* pickupInfoLbl;
     QLabel* seatNumLbl;
+    QLabel* travelStatusLbl;
 
     QLabel* feeStatusLbl;
     QLabel* feeTotalLbl;
@@ -38,12 +39,14 @@ private:
     QTableWidget* myAttendanceTable;
     QPushButton* viewReceiptBtn;
     QPushButton* viewSeatsBtn;
+    QPushButton* liveMapBtn;
     QPushButton* refreshBtn;
 
     void setupUI();
 
 signals:
     void requestViewSeats(const QString& busId);
+    void requestLiveMap(const QString& busId);
 
 private slots:
     void handleViewReceipt();

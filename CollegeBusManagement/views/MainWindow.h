@@ -22,6 +22,7 @@
 #include "ReportsView.h"
 #include "StudentPortalView.h"
 #include "DriverPortalView.h"
+#include "ConductorPortalView.h"
 #include "BusMapWidget.h"
 
 /**
@@ -56,6 +57,7 @@ private:
     ReportsView* reportsView;
     StudentPortalView* studentPortalView;
     DriverPortalView* driverPortalView;
+    ConductorPortalView* conductorPortalView;
     BusMapWidget* busMapWidget;
 
     void setupUI();

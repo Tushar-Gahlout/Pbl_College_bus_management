@@ -32,9 +32,15 @@ void DriverPortalView::setupUI() {
     headerLayout->addWidget(driverNameLbl);
     headerLayout->addStretch();
 
+    liveMapBtn = new QPushButton("🗺️ Live Route Map", this);
+    liveMapBtn->setProperty("class", "primaryButton");
+    liveMapBtn->setCursor(Qt::PointingHandCursor);
+
     refreshBtn = new QPushButton("🔄 Refresh", this);
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
+
+    headerLayout->addWidget(liveMapBtn);
     headerLayout->addWidget(refreshBtn);
 
     mainLayout->addLayout(headerLayout);
@@ -66,12 +72,15 @@ void DriverPortalView::setupUI() {
     timingLbl = new QLabel(busBox);
     stopsLbl = new QLabel(busBox);
     stopsLbl->setWordWrap(true);
+    dutyTravelTimeLbl = new QLabel(busBox);
+    dutyTravelTimeLbl->setStyleSheet("font-size: 13px; font-weight: bold; color: #b45309; margin-top: 4px;");
 
     bLayout->addWidget(busIdLbl);
     bLayout->addWidget(busRegLbl);
     bLayout->addWidget(routeNameLbl);
     bLayout->addWidget(timingLbl);
     bLayout->addWidget(stopsLbl);
+    bLayout->addWidget(dutyTravelTimeLbl);
     cardsLayout->addWidget(busBox, 2);
 
     mainLayout->addLayout(cardsLayout);
@@ -97,6 +106,12 @@ void DriverPortalView::setupUI() {
     passengerTable->verticalHeader()->setVisible(false);
     mainLayout->addWidget(passengerTable);
 
+    connect(liveMapBtn, &QPushButton::clicked, this, [this]() {
+        std::string dId = currentUser.getAssociatedId();
+        if (dId.empty()) dId = "DRV01";
+        Driver d = fileManager->getDriverById(dId);
+        emit requestLiveMap(QString::fromStdString(d.getAssignedBus()));
+    });
     connect(refreshBtn, &QPushButton::clicked, this, &DriverPortalView::refreshData);
 }
 
@@ -122,6 +137,7 @@ void DriverPortalView::refreshData() {
         routeNameLbl->setText("");
         timingLbl->setText("");
         stopsLbl->setText("");
+        dutyTravelTimeLbl->setText("");
         passengerTable->setRowCount(0);
         return;
     }
@@ -134,6 +150,7 @@ void DriverPortalView::refreshData() {
     routeNameLbl->setText("Route: " + QString::fromStdString(r.getRouteName()));
     timingLbl->setText("Shift Timing: Pickup " + QString::fromStdString(r.getPickupTime()) + " | Drop " + QString::fromStdString(r.getDropTime()));
     stopsLbl->setText("Route Stops: " + QString::fromStdString(r.getStopsAsString()));
+    dutyTravelTimeLbl->setText("⏱️ Estimated Duty Travel Duration: ~40 mins per trip (Live GPS On-Road)");
 
     // Load assigned students
     auto allStudents = fileManager->getAllStudents();

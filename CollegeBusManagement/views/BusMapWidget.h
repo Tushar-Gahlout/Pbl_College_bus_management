@@ -15,6 +15,7 @@ struct MapStop {
     QPointF pos;
     bool isOrigin;
     bool isDestination;
+    QString scheduledTime;
 };
 
 /**
@@ -66,6 +67,7 @@ private:
     QLabel* currentStopValLbl;
     QLabel* nextStopValLbl;
     QLabel* speedValLbl;
+    QLabel* travelTimeValLbl;
     QLabel* etaValLbl;
 
     QPushButton* playPauseBtn;
@@ -107,6 +109,8 @@ public slots:
 public:
     explicit BusMapWidget(FileManager* fm, QWidget* parent = nullptr);
     ~BusMapWidget() override = default;
+
+    void selectBus(const QString& busId);
 };
 
 #endif // BUSMAPWIDGET_H

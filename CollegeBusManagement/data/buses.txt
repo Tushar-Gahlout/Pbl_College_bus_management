@@ -1,6 +1,6 @@
-BUS01|DL-01-AB-1001|40|5|Rajesh Kumar|R01|Active|Full Day|City Centre
+BUS01|DL-01-AB-1001|40|5|Rajesh Kumar|R01|Active|Full Day|Sector 14
 BUS02|DL-01-CD-2002|35|3|Vikram Singh|R02|Active|Half Day (Morning)|South Extension
 BUS03|DL-01-EF-3003|45|2|Suresh Nair|R03|Active|Full Day|Civil Lines
-BUS04|DL-01-GH-4004|30|0|None|None|Maintenance|Half Day (Evening)|Central Workshop
+BUS04|DL-01-GH-4004|30|0|None|None|Maintenance|Half Day (Evening)|Origin Terminal
 BUS05|DL-01-JK-5005|40|3|Mahesh Verma|R04|Active|Full Day|West Terminal
 BUS06|DL-01-LM-6006|35|2|Kuldeep Yadav|R05|Active|Half Day (Morning)|North Campus

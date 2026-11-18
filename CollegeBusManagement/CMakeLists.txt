@@ -100,6 +100,8 @@ set(PROJECT_SOURCES
     views/StudentPortalView.cpp
     views/DriverPortalView.h
     views/DriverPortalView.cpp
+    views/ConductorPortalView.h
+    views/ConductorPortalView.cpp
     views/BusMapWidget.h
     views/BusMapWidget.cpp
 

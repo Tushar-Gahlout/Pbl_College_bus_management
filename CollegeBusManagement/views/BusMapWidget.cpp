@@ -35,6 +35,15 @@ void MapCanvas::setRouteStops(const std::vector<std::string>& stopNames) {
         ms.pos = QPointF(0, 0);
         ms.isOrigin = (i == 0);
         ms.isDestination = (i == names.size() - 1);
+
+        int totalRouteMinutes = 40;
+        int stopOffsetMins = (names.size() > 1) ? static_cast<int>(i * totalRouteMinutes / (names.size() - 1)) : 0;
+        int hour = 8 + (stopOffsetMins / 60);
+        int minute = stopOffsetMins % 60;
+        ms.scheduledTime = QString("%1:%2 AM")
+            .arg(hour, 2, 10, QChar('0'))
+            .arg(minute, 2, 10, QChar('0'));
+
         stops.push_back(ms);
     }
     recalculatePositions();
@@ -97,11 +106,14 @@ void MapCanvas::paintEvent(QPaintEvent* /*event*/) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // 1. Canvas Base Map
-    painter.fillRect(rect(), QColor("#f8fafc"));
+    // Ensure positions are perfectly fitted to canvas dimensions
+    recalculatePositions();
+
+    // 1. Canvas Base Map (Warm Ivory Champagne)
+    painter.fillRect(rect(), QColor("#fbf9f5"));
 
     // 2. City Road Grid Pattern
-    painter.setPen(QPen(QColor("#e2e8f0"), 1, Qt::DotLine));
+    painter.setPen(QPen(QColor("#ebe2d3"), 1, Qt::DotLine));
     for (int y = 30; y < height(); y += 35) {
         painter.drawLine(0, y, width(), y);
     }
@@ -111,18 +123,22 @@ void MapCanvas::paintEvent(QPaintEvent* /*event*/) {
 
     if (stops.size() < 2) return;
 
-    // 3. Draw Highway Road Underlay (Wide Grey Border)
+    // 3. Draw Highway Road Underlay (Warm Sandstone Border)
     QPainterPath roadPath;
     roadPath.moveTo(stops[0].pos);
     for (size_t i = 1; i < stops.size(); ++i) {
         roadPath.lineTo(stops[i].pos);
     }
 
-    painter.setPen(QPen(QColor("#cbd5e1"), 16, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.setPen(QPen(QColor("#e2d6c3"), 16, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    roadPath.moveTo(stops[0].pos);
+    for (size_t i = 1; i < stops.size(); ++i) {
+        roadPath.lineTo(stops[i].pos);
+    }
     painter.drawPath(roadPath);
 
-    // 4. Draw Active Transit Lane (Vibrant Electric Indigo)
-    painter.setPen(QPen(QColor("#4f46e5"), 6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    // 4. Draw Active Transit Lane (Vibrant Royal Gold)
+    painter.setPen(QPen(QColor("#d97706"), 6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawPath(roadPath);
 
     // 5. Render Route Stops & Landmarks
@@ -135,60 +151,81 @@ void MapCanvas::paintEvent(QPaintEvent* /*event*/) {
             painter.setPen(QPen(Qt::white, 3));
             painter.drawEllipse(s.pos, 16, 16);
 
-            painter.setPen(QColor("#1e1b4b"));
+            painter.setPen(QColor("#1c1917"));
             painter.setFont(QFont("Segoe UI", 10, QFont::Bold));
-            painter.drawText(s.pos.x() - 65, s.pos.y() + 30, 130, 20, Qt::AlignCenter, "🎓 " + s.name);
+            painter.drawText(s.pos.x() - 65, s.pos.y() + 28, 130, 18, Qt::AlignCenter, "🎓 " + s.name);
+
+            painter.setPen(QColor("#059669"));
+            painter.setFont(QFont("Segoe UI", 8, QFont::Bold));
+            painter.drawText(s.pos.x() - 65, s.pos.y() + 46, 130, 16, Qt::AlignCenter, "🕒 " + s.scheduledTime);
         } else if (s.isOrigin) {
-            // Origin Terminal
-            painter.setBrush(QColor("#4f46e5"));
+            // Origin Terminal (Royal Gold)
+            painter.setBrush(QColor("#d97706"));
             painter.setPen(QPen(Qt::white, 3));
             painter.drawEllipse(s.pos, 14, 14);
 
-            painter.setPen(QColor("#1e1b4b"));
+            painter.setPen(QColor("#1c1917"));
             painter.setFont(QFont("Segoe UI", 10, QFont::Bold));
-            painter.drawText(s.pos.x() - 65, s.pos.y() + 28, 130, 20, Qt::AlignCenter, "🚩 " + s.name);
+            painter.drawText(s.pos.x() - 65, s.pos.y() + 28, 130, 18, Qt::AlignCenter, "🚩 " + s.name);
+
+            painter.setPen(QColor("#b45309"));
+            painter.setFont(QFont("Segoe UI", 8, QFont::Bold));
+            painter.drawText(s.pos.x() - 65, s.pos.y() + 46, 130, 16, Qt::AlignCenter, "🕒 " + s.scheduledTime);
         } else {
             // Intermediate Transit Stop
             painter.setBrush(QColor("#ffffff"));
-            painter.setPen(QPen(QColor("#4f46e5"), 3));
+            painter.setPen(QPen(QColor("#d97706"), 3));
             painter.drawEllipse(s.pos, 11, 11);
 
             // Stop number
-            painter.setPen(QColor("#4f46e5"));
+            painter.setPen(QColor("#b45309"));
             painter.setFont(QFont("Segoe UI", 8, QFont::Bold));
             painter.drawText(QRectF(s.pos.x() - 10, s.pos.y() - 10, 20, 20), Qt::AlignCenter, QString::number(i));
 
-            painter.setPen(QColor("#334155"));
+            painter.setPen(QColor("#292524"));
             painter.setFont(QFont("Segoe UI", 9, QFont::Bold));
-            painter.drawText(s.pos.x() - 60, s.pos.y() + 24, 120, 20, Qt::AlignCenter, s.name);
+            painter.drawText(s.pos.x() - 60, s.pos.y() + 24, 120, 18, Qt::AlignCenter, s.name);
+
+            painter.setPen(QColor("#78716c"));
+            painter.setFont(QFont("Segoe UI", 8));
+            painter.drawText(s.pos.x() - 60, s.pos.y() + 42, 120, 16, Qt::AlignCenter, s.scheduledTime);
         }
     }
 
     // 6. Draw Live Moving Bus at Interpolated Position
     QPointF busPos = getInterpolatedBusPos();
 
-    // Concentric Radar GPS Pulse Rings
+    // Concentric Radar GPS Pulse Rings (Radiant Gold)
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(79, 70, 229, 45));
+    painter.setBrush(QColor(217, 119, 6, 45));
     painter.drawEllipse(busPos, 34, 34);
-    painter.setBrush(QColor(79, 70, 229, 85));
+    painter.setBrush(QColor(217, 119, 6, 85));
     painter.drawEllipse(busPos, 22, 22);
 
-    // Bus Core Marker
+    // Bus Core Marker (Radiant Gold)
     painter.setBrush(QColor("#f59e0b"));
     painter.setPen(QPen(Qt::white, 2));
     painter.drawEllipse(busPos, 14, 14);
 
-    // Floating Live Vehicle Telemetry Card
-    QRectF cardRect(busPos.x() - 85, busPos.y() - 54, 170, 36);
-    painter.setBrush(QColor("#1e1b4b"));
-    painter.setPen(QPen(QColor("#818cf8"), 1.5));
-    painter.drawRoundedRect(cardRect, 6, 6);
+    // Floating Live Vehicle Telemetry Card with Bus Travelling Time (Pure White with Imperial Gold Border - No Black!)
+    QRectF cardRect(busPos.x() - 95, busPos.y() - 64, 190, 46);
+    painter.setBrush(QColor("#ffffff"));
+    painter.setPen(QPen(QColor("#d97706"), 2.0));
+    painter.drawRoundedRect(cardRect, 7, 7);
 
-    painter.setPen(Qt::white);
+    int totalTripMins = 40;
+    int elapsedMins = static_cast<int>(busProgress * totalTripMins);
+    int remainingMins = totalTripMins - elapsedMins;
+
+    painter.setPen(QColor("#78350f"));
     painter.setFont(QFont("Segoe UI", 9, QFont::Bold));
-    painter.drawText(cardRect, Qt::AlignCenter,
-        QString("🚌 %1 | %2 km/h\n%3").arg(QString::fromStdString(busId)).arg(speedKmh).arg(QString::fromStdString(shiftType)));
+    painter.drawText(QRectF(cardRect.x(), cardRect.y() + 4, cardRect.width(), 18), Qt::AlignCenter,
+        QString("🚌 %1 | %2 km/h (%3)").arg(QString::fromStdString(busId)).arg(speedKmh).arg(QString::fromStdString(shiftType)));
+
+    painter.setPen(QColor("#b45309"));
+    painter.setFont(QFont("Segoe UI", 8, QFont::Bold));
+    painter.drawText(QRectF(cardRect.x(), cardRect.y() + 23, cardRect.width(), 18), Qt::AlignCenter,
+        QString("⏱️ Travel: %1m done | ETA: %2m").arg(elapsedMins).arg(remainingMins));
 }
 
 // ============================================================================
@@ -226,19 +263,19 @@ void BusMapWidget::setupUI() {
     row1->setSpacing(12);
 
     auto* busSelectLbl = new QLabel("🚌 Select Bus:", topCard);
-    busSelectLbl->setStyleSheet("font-weight: bold; font-size: 13px; color: #1e1b4b;");
+    busSelectLbl->setStyleSheet("font-weight: bold; font-size: 13px; color: #1c1917;");
     row1->addWidget(busSelectLbl);
 
     busSelectorCombo = new QComboBox(topCard);
     busSelectorCombo->setMinimumWidth(140);
-    busSelectorCombo->setStyleSheet("font-size: 13px; font-weight: 600; padding: 6px 10px;");
+    busSelectorCombo->setStyleSheet("font-size: 13px; font-weight: 600; padding: 6px 10px; border: 1.5px solid #d97706;");
     row1->addWidget(busSelectorCombo);
 
     row1->addSpacing(8);
 
     // Live Shift Badge
     shiftBadgeLbl = new QLabel("Shift: Full Day", topCard);
-    shiftBadgeLbl->setStyleSheet("background-color: #ede9fe; color: #4338ca; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px; border: 1px solid #ddd6fe;");
+    shiftBadgeLbl->setStyleSheet("background-color: #fef3c7; color: #92400e; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px; border: 1px solid #fde68a;");
     row1->addWidget(shiftBadgeLbl);
 
     // Empty Seats Badge
@@ -267,22 +304,22 @@ void BusMapWidget::setupUI() {
 
     speedToggleBtn = new QPushButton("⚡ Speed: 1x", topCard);
     speedToggleBtn->setStyleSheet(
-        "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 105px; min-height: 38px; }"
-        "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; }"
+        "QPushButton { background-color: #fffbeb; color: #78350f; border: 1.5px solid #f59e0b; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 105px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #fef3c7; border-color: #d97706; }"
     );
     speedToggleBtn->setCursor(Qt::PointingHandCursor);
 
     nextStopBtn = new QPushButton("⏭ Skip to Next Stop", topCard);
     nextStopBtn->setStyleSheet(
-        "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 145px; min-height: 38px; }"
-        "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; }"
+        "QPushButton { background-color: #fffbeb; color: #78350f; border: 1.5px solid #f59e0b; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 145px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #fef3c7; border-color: #d97706; }"
     );
     nextStopBtn->setCursor(Qt::PointingHandCursor);
 
     resetBtn = new QPushButton("🔄 Reset Route", topCard);
     resetBtn->setStyleSheet(
-        "QPushButton { background-color: #ffffff; color: #312e81; border: 1.5px solid #c7d2fe; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 115px; min-height: 38px; }"
-        "QPushButton:hover { background-color: #eef2ff; border-color: #818cf8; }"
+        "QPushButton { background-color: #fffbeb; color: #78350f; border: 1.5px solid #f59e0b; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 115px; min-height: 38px; }"
+        "QPushButton:hover { background-color: #fef3c7; border-color: #d97706; }"
     );
     resetBtn->setCursor(Qt::PointingHandCursor);
 
@@ -304,31 +341,37 @@ void BusMapWidget::setupUI() {
     topCardLayout->addLayout(row2);
     mainLayout->addWidget(topCard);
 
-    // 2. Telemetry HUD Bar (Deep Indigo Theme)
+    // 2. Telemetry HUD Bar (Champagne White & Royal Gold Accent - No Black!)
     auto* hudCard = new QFrame(this);
-    hudCard->setStyleSheet("background-color: #1e1b4b; border-radius: 8px; padding: 12px 20px; border: 1px solid #312e81;");
+    hudCard->setStyleSheet("background-color: #ffffff; border-radius: 8px; padding: 12px 20px; border: 2px solid #d97706;");
     auto* hudLayout = new QHBoxLayout(hudCard);
 
     currentStopValLbl = new QLabel("📍 Current Station: Origin Terminal", hudCard);
-    currentStopValLbl->setStyleSheet("color: #a5b4fc; font-weight: 700; font-size: 13px;");
+    currentStopValLbl->setStyleSheet("color: #78350f; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(currentStopValLbl);
 
     hudLayout->addSpacing(25);
 
     nextStopValLbl = new QLabel("➔ Next Stop: Loading...", hudCard);
-    nextStopValLbl->setStyleSheet("color: #fde047; font-weight: 700; font-size: 13px;");
+    nextStopValLbl->setStyleSheet("color: #b45309; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(nextStopValLbl);
 
     hudLayout->addSpacing(25);
 
     speedValLbl = new QLabel("Speed: 42 km/h", hudCard);
-    speedValLbl->setStyleSheet("color: #34d399; font-weight: 700; font-size: 13px;");
+    speedValLbl->setStyleSheet("color: #059669; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(speedValLbl);
 
     hudLayout->addSpacing(25);
 
+    travelTimeValLbl = new QLabel("⏱️ Travel Time: 0m / 40m", hudCard);
+    travelTimeValLbl->setStyleSheet("color: #d97706; font-weight: 700; font-size: 13px;");
+    hudLayout->addWidget(travelTimeValLbl);
+
+    hudLayout->addSpacing(25);
+
     etaValLbl = new QLabel("ETA: 3 mins", hudCard);
-    etaValLbl->setStyleSheet("color: #ffffff; font-weight: 700; font-size: 13px;");
+    etaValLbl->setStyleSheet("color: #92400e; font-weight: 700; font-size: 13px;");
     hudLayout->addWidget(etaValLbl);
 
     hudLayout->addStretch();
@@ -422,12 +465,16 @@ void BusMapWidget::updateMapForSelectedBus() {
 
     mapCanvas->setRouteStops(stopList);
 
-    // Build timeline string
+    // Build timeline string with stop scheduled arrival times
     QStringList tl;
     for (size_t i = 0; i < stopList.size(); ++i) {
-        tl << QString("[%1] %2").arg(i + 1).arg(QString::fromStdString(stopList[i]));
+        int stopOffsetMins = (stopList.size() > 1) ? static_cast<int>(i * 40 / (stopList.size() - 1)) : 0;
+        int h = 8 + (stopOffsetMins / 60);
+        int m = stopOffsetMins % 60;
+        QString timeStr = QString("%1:%2 AM").arg(h, 2, 10, QChar('0')).arg(m, 2, 10, QChar('0'));
+        tl << QString("[%1] %2 (%3)").arg(i + 1).arg(QString::fromStdString(stopList[i])).arg(timeStr);
     }
-    timelineLbl->setText("Route Progression: " + tl.join("  ➔  "));
+    timelineLbl->setText("Route Progression & Stop Timings: " + tl.join("  ➔  "));
 }
 
 void BusMapWidget::onGpsTick() {
@@ -458,12 +505,18 @@ void BusMapWidget::updateTelemetry() {
     QString currStop = stops[currIdx].name;
     QString nextStop = stops[nextIdx].name;
 
-    currentStopValLbl->setText(QString("📍 Current Station: %1").arg(currStop));
-    nextStopValLbl->setText(QString("➔ Next Stop: %1").arg(nextStop));
-    speedValLbl->setText(QString("Speed: %1 km/h").arg(currentSpeedKmh));
+    currentStopValLbl->setText(QString("📍 Current: %1").arg(currStop));
 
-    int mins = 1 + (static_cast<int>(std::ceil((1.0f - (scaled - currIdx)) * 4.0f)));
-    etaValLbl->setText(QString("ETA: %1 mins").arg(mins));
+    int totalMins = 40;
+    int elapsedMins = static_cast<int>(busProgress * totalMins);
+    int remainingMins = totalMins - elapsedMins;
+    int nextStopMins = 1 + (static_cast<int>(std::ceil((1.0f - (scaled - currIdx)) * (totalMins / totalSegments))));
+    if (nextStopMins < 1) nextStopMins = 1;
+
+    nextStopValLbl->setText(QString("➔ Next: %1 (in %2m)").arg(nextStop).arg(nextStopMins));
+    speedValLbl->setText(QString("Speed: %1 km/h").arg(currentSpeedKmh));
+    travelTimeValLbl->setText(QString("⏱️ Travel Time: %1m done | %2m left").arg(elapsedMins).arg(remainingMins));
+    etaValLbl->setText(QString("🎓 Campus ETA: %1m").arg(remainingMins));
 
     // Update persistent bus location if passed a new stop
     if (currIdx != lastPassedStopIdx) {
@@ -491,8 +544,8 @@ void BusMapWidget::handleToggleTracking() {
     } else {
         playPauseBtn->setText("▶ Resume Tracking");
         playPauseBtn->setStyleSheet(
-            "QPushButton { background-color: #4f46e5; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 125px; }"
-            "QPushButton:hover { background-color: #4338ca; }"
+            "QPushButton { background-color: #b45309; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; min-width: 125px; }"
+            "QPushButton:hover { background-color: #92400e; }"
         );
         liveGpsIndicatorLbl->setText("⏸ GPS PAUSED");
         liveGpsIndicatorLbl->setStyleSheet("background-color: #fef2f2; color: #e11d48; border: 1px solid #fecdd3; padding: 6px 12px; border-radius: 12px; font-weight: bold; font-size: 12px;");
@@ -616,5 +669,12 @@ void BusMapWidget::handleBookEmptySeat() {
 
     if (dlg.exec() == QDialog::Accepted) {
         refreshData();
+    }
+}
+
+void BusMapWidget::selectBus(const QString& busId) {
+    int idx = busSelectorCombo->findText(busId);
+    if (idx != -1) {
+        busSelectorCombo->setCurrentIndex(idx);
     }
 }

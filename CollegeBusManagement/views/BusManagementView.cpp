@@ -17,33 +17,45 @@ BusManagementView::BusManagementView(FileManager* fm, QWidget* parent)
 
 void BusManagementView::setupUI() {
     auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(24, 24, 24, 24);
-    mainLayout->setSpacing(16);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
+    mainLayout->setSpacing(12);
+
+    tabWidget = new QTabWidget(this);
+
+    // Tab 1: Fleet Roster & Management
+    auto* listTab = new QWidget(tabWidget);
+    auto* listLayout = new QVBoxLayout(listTab);
+    listLayout->setContentsMargins(16, 16, 16, 16);
+    listLayout->setSpacing(14);
 
     // Header & Actions
     auto* topLayout = new QHBoxLayout();
-    auto* title = new QLabel("Bus Fleet Management", this);
-    title->setStyleSheet("font-size: 20px; font-weight: bold; color: #0f172a;");
+    auto* title = new QLabel("Bus Fleet Management", listTab);
+    title->setStyleSheet("font-size: 20px; font-weight: bold; color: #78350f;");
     topLayout->addWidget(title);
     topLayout->addStretch();
 
-    addBtn = new QPushButton("➕ Add Bus", this);
+    addBtn = new QPushButton("➕ Add Bus", listTab);
     addBtn->setProperty("class", "primaryButton");
     addBtn->setCursor(Qt::PointingHandCursor);
 
-    editBtn = new QPushButton("✏️ Edit", this);
+    editBtn = new QPushButton("✏️ Edit", listTab);
     editBtn->setProperty("class", "secondaryButton");
     editBtn->setCursor(Qt::PointingHandCursor);
 
-    deleteBtn = new QPushButton("🗑️ Delete", this);
+    deleteBtn = new QPushButton("🗑️ Delete", listTab);
     deleteBtn->setProperty("class", "dangerButton");
     deleteBtn->setCursor(Qt::PointingHandCursor);
 
-    viewPassengersBtn = new QPushButton("👥 Passengers", this);
+    viewPassengersBtn = new QPushButton("👥 Passengers", listTab);
     viewPassengersBtn->setProperty("class", "secondaryButton");
     viewPassengersBtn->setCursor(Qt::PointingHandCursor);
 
-    refreshBtn = new QPushButton("🔄 Refresh", this);
+    trackMapBtn = new QPushButton("🗺️ View on Live Map", listTab);
+    trackMapBtn->setProperty("class", "primaryButton");
+    trackMapBtn->setCursor(Qt::PointingHandCursor);
+
+    refreshBtn = new QPushButton("🔄 Refresh", listTab);
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
@@ -51,27 +63,35 @@ void BusManagementView::setupUI() {
     topLayout->addWidget(editBtn);
     topLayout->addWidget(deleteBtn);
     topLayout->addWidget(viewPassengersBtn);
+    topLayout->addWidget(trackMapBtn);
     topLayout->addWidget(refreshBtn);
-    mainLayout->addLayout(topLayout);
+    listLayout->addLayout(topLayout);
 
     // Search bar
-    searchEdit = new QLineEdit(this);
+    searchEdit = new QLineEdit(listTab);
     searchEdit->setPlaceholderText("🔍 Search bus by ID, Reg Number, Driver or Status...");
     searchEdit->setClearButtonEnabled(true);
-    mainLayout->addWidget(searchEdit);
+    listLayout->addWidget(searchEdit);
 
     // Bus Table
-    busTable = new QTableWidget(this);
+    busTable = new QTableWidget(listTab);
     busTable->setColumnCount(10);
     busTable->setHorizontalHeaderLabels({
-        "Bus ID", "Registration No", "Capacity", "Occupied", "Empty Seats", "Shift Schedule", "Assigned Driver", "Route ID", "Status", "Live Location"
+        "Bus ID", "Registration No", "Capacity", "Occupied", "Empty Seats", "Shift Schedule", "Assigned Driver", "Route ID", "Status", "Live Location & Map"
     });
     busTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     busTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     busTable->setSelectionMode(QAbstractItemView::SingleSelection);
     busTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     busTable->verticalHeader()->setVisible(false);
-    mainLayout->addWidget(busTable);
+    listLayout->addWidget(busTable);
+
+    // Tab 2: Embedded Live Bus Location GPS Map
+    embeddedMapWidget = new BusMapWidget(fileManager, tabWidget);
+
+    tabWidget->addTab(listTab, "📋 Bus Fleet Overview");
+    tabWidget->addTab(embeddedMapWidget, "🗺️ Live Bus Location & Route GPS Map");
+    mainLayout->addWidget(tabWidget);
 
     // Connect signals
     connect(searchEdit, &QLineEdit::textChanged, this, &BusManagementView::handleSearch);
@@ -79,12 +99,47 @@ void BusManagementView::setupUI() {
     connect(editBtn, &QPushButton::clicked, this, &BusManagementView::handleEdit);
     connect(deleteBtn, &QPushButton::clicked, this, &BusManagementView::handleDelete);
     connect(viewPassengersBtn, &QPushButton::clicked, this, &BusManagementView::handleViewPassengers);
+
+    connect(trackMapBtn, &QPushButton::clicked, this, [this]() {
+        int row = busTable->currentRow();
+        QString bId = "";
+        if (row >= 0 && busTable->item(row, 0)) {
+            bId = busTable->item(row, 0)->text();
+        } else if (busTable->rowCount() > 0 && busTable->item(0, 0)) {
+            bId = busTable->item(0, 0)->text();
+        }
+        if (!bId.isEmpty()) {
+            embeddedMapWidget->selectBus(bId);
+        }
+        tabWidget->setCurrentIndex(1); // Switch to Map Tab!
+        emit requestTrackBus(bId);
+    });
+
+    connect(busTable, &QTableWidget::cellClicked, this, [this](int row, int col) {
+        if (col == 9 && row >= 0 && busTable->item(row, 0)) {
+            QString bId = busTable->item(row, 0)->text();
+            embeddedMapWidget->selectBus(bId);
+            tabWidget->setCurrentIndex(1);
+        }
+    });
+
     connect(refreshBtn, &QPushButton::clicked, this, &BusManagementView::refreshData);
-    connect(busTable, &QTableWidget::doubleClicked, this, &BusManagementView::handleEdit);
+    connect(busTable, &QTableWidget::doubleClicked, this, [this](const QModelIndex& index) {
+        if (index.column() == 9 && index.row() >= 0 && busTable->item(index.row(), 0)) {
+            QString bId = busTable->item(index.row(), 0)->text();
+            embeddedMapWidget->selectBus(bId);
+            tabWidget->setCurrentIndex(1);
+        } else {
+            handleEdit();
+        }
+    });
 }
 
 void BusManagementView::refreshData() {
     handleSearch();
+    if (embeddedMapWidget) {
+        embeddedMapWidget->refreshData();
+    }
 }
 
 void BusManagementView::handleSearch() {

@@ -33,11 +33,15 @@ void StudentPortalView::setupUI() {
     headerLayout->addWidget(studentNameLbl);
     headerLayout->addStretch();
 
-    viewSeatsBtn = new QPushButton("💺 View Bus Seating Layout", this);
-    viewSeatsBtn->setProperty("class", "primaryButton");
+    liveMapBtn = new QPushButton("🗺️ Track Bus on Map", this);
+    liveMapBtn->setProperty("class", "primaryButton");
+    liveMapBtn->setCursor(Qt::PointingHandCursor);
+
+    viewSeatsBtn = new QPushButton("💺 View Bus Seats", this);
+    viewSeatsBtn->setProperty("class", "secondaryButton");
     viewSeatsBtn->setCursor(Qt::PointingHandCursor);
 
-    viewReceiptBtn = new QPushButton("🧾 View Payment Receipt", this);
+    viewReceiptBtn = new QPushButton("🧾 Payment Receipt", this);
     viewReceiptBtn->setProperty("class", "secondaryButton");
     viewReceiptBtn->setCursor(Qt::PointingHandCursor);
 
@@ -45,6 +49,7 @@ void StudentPortalView::setupUI() {
     refreshBtn->setProperty("class", "secondaryButton");
     refreshBtn->setCursor(Qt::PointingHandCursor);
 
+    headerLayout->addWidget(liveMapBtn);
     headerLayout->addWidget(viewSeatsBtn);
     headerLayout->addWidget(viewReceiptBtn);
     headerLayout->addWidget(refreshBtn);
@@ -77,7 +82,10 @@ void StudentPortalView::setupUI() {
     routeNameLbl = new QLabel(busBox);
     pickupInfoLbl = new QLabel(busBox);
     seatNumLbl = new QLabel(busBox);
-    seatNumLbl->setStyleSheet("font-size: 15px; font-weight: bold; color: #2563eb;");
+    seatNumLbl->setStyleSheet("font-size: 15px; font-weight: bold; color: #d97706;");
+
+    travelStatusLbl = new QLabel(busBox);
+    travelStatusLbl->setStyleSheet("font-size: 13px; font-weight: bold; color: #b45309; margin-top: 4px;");
 
     bLayout->addWidget(busIdLbl);
     bLayout->addWidget(busRegLbl);
@@ -85,6 +93,7 @@ void StudentPortalView::setupUI() {
     bLayout->addWidget(routeNameLbl);
     bLayout->addWidget(pickupInfoLbl);
     bLayout->addWidget(seatNumLbl);
+    bLayout->addWidget(travelStatusLbl);
     cardsLayout->addWidget(busBox, 1);
 
     // Card 3: Fee Status
@@ -120,6 +129,12 @@ void StudentPortalView::setupUI() {
     myAttendanceTable->verticalHeader()->setVisible(false);
     mainLayout->addWidget(myAttendanceTable);
 
+    connect(liveMapBtn, &QPushButton::clicked, this, [this]() {
+        std::string sId = currentUser.getAssociatedId();
+        if (sId.empty()) sId = "STU101";
+        Student s = fileManager->getStudentById(sId);
+        emit requestLiveMap(QString::fromStdString(s.getBusNumber()));
+    });
     connect(viewSeatsBtn, &QPushButton::clicked, this, [this]() {
         std::string sId = currentUser.getAssociatedId();
         if (sId.empty()) sId = "STU101";
@@ -164,6 +179,7 @@ void StudentPortalView::refreshData() {
         routeNameLbl->setText("Route: " + QString::fromStdString(r.getRouteName()) + " (" + QString::fromStdString(r.getPickupTime()) + ")");
         pickupInfoLbl->setText("My Pickup Point: " + QString::fromStdString(s.getPickupPoint()));
         seatNumLbl->setText(QString("Allocated Seat: #%1").arg(s.getSeatNumber()));
+        travelStatusLbl->setText("⏱️ Live Travel Time: ~40 mins trip (Schedule: " + QString::fromStdString(r.getPickupTime().empty() ? "08:00 AM" : r.getPickupTime()) + " - 08:40 AM)");
     }
 
     // Fee info

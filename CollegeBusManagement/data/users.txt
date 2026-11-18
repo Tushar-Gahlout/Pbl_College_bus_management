@@ -10,3 +10,5 @@ driver2|pass123|Driver|DRV02|Vikram Singh
 driver3|pass123|Driver|DRV03|Mahesh Verma
 driver4|pass123|Driver|DRV04|Suresh Nair
 driver5|pass123|Driver|DRV05|Kuldeep Yadav
+conductor1|pass123|Conductor|BUS01|Ramesh Conductor (Bus Helper)
+conductor2|pass123|Conductor|BUS02|Sunil Conductor (Bus Helper)

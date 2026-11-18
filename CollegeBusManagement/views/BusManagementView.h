@@ -5,7 +5,9 @@
 #include <QTableWidget>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QTabWidget>
 #include "../services/FileManager.h"
+#include "BusMapWidget.h"
 
 /**
  * @brief Bus Management Module for adding, editing, deleting, and tracking bus fleet.
@@ -16,6 +18,9 @@ class BusManagementView : public QWidget {
 private:
     FileManager* fileManager;
 
+    QTabWidget* tabWidget;
+    BusMapWidget* embeddedMapWidget;
+
     QLineEdit* searchEdit;
     QTableWidget* busTable;
 
@@ -23,11 +28,15 @@ private:
     QPushButton* editBtn;
     QPushButton* deleteBtn;
     QPushButton* viewPassengersBtn;
+    QPushButton* trackMapBtn;
     QPushButton* refreshBtn;
 
     void setupUI();
     void showBusFormDialog(Bus* existing = nullptr);
     void showPassengersDialog(const std::string& busId);
+
+signals:
+    void requestTrackBus(const QString& busId);
 
 private slots:
     void handleSearch();
